@@ -8,16 +8,28 @@ export interface ProviderConfig {
   timeoutMs?: number;
 }
 
-function tryParseJson(text: string) {
-  const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
-  const match = text.match(jsonRegex);
-  if (match?.[1]) {
+export function tryParseJson(text: string) {
+  const fencedRegex = /```json\s*([\s\S]*?)\s*```/;
+  const fencedMatch = text.match(fencedRegex);
+  if (fencedMatch?.[1]) {
     try {
-      return JSON.parse(match[1]);
-    } catch (e) {
-      // Ignore if parsing fails
+      return JSON.parse(fencedMatch[1]);
+    } catch {
+      // ignore
     }
   }
+
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
+  if (first !== -1 && last !== -1 && last > first) {
+    const candidate = text.slice(first, last + 1);
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // ignore
+    }
+  }
+
   return null;
 }
 
