@@ -9,9 +9,6 @@
     "example": "npm run build && node dist/examples/mathAgent.js",
     "test": "npm run build && node --test dist/__tests__"
   },
-  "dependencies": {
-    "dotenv": "^16.5.0"
-  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "~5.5.0"
