@@ -144,7 +144,7 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
 /**
  * Comprehensive JSON normalization for OpenRouter responses
  */
-function normalizeOpenRouterJSON(argsString: string): string | null {
+export function normalizeOpenRouterJSON(argsString: string): string | null {
   try {
     // Strategy 1: Direct parsing (might work if it's actually valid)
     JSON.parse(argsString);
