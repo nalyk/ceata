@@ -1,9 +1,17 @@
 import { defineTool } from "../core/Tool.js";
 import { runAgent, ProviderConfig } from "../core/AgentRunner.js";
-import { openRouter } from "../providers/openrouter.js";
+import { createOpenRouterProvider } from "../providers/openrouter.js";
 import { google } from "../providers/google.js";
 import { openai } from "../providers/openai.js";
 import { config } from "../config/index.js";
+
+// Create an OpenRouter provider with custom headers
+const openRouter = createOpenRouterProvider(undefined, undefined, {
+  headers: {
+    "HTTP-Referer": "https://example.com",
+    "X-Title": "Ceata Math Agent",
+  },
+});
 
 // Define math tools
 const addTool = defineTool({

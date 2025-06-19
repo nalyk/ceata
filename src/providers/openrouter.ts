@@ -5,6 +5,7 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
   maxTokens?: number;
   temperature?: number;
   timeoutMs?: number;
+  headers?: Record<string, string>;
 }): Provider {
   const providerConfig = config.providers.openrouter;
   const actualApiKey = apiKey || providerConfig.apiKey;
@@ -12,6 +13,7 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
   const actualMaxTokens = options?.maxTokens || providerConfig.maxTokens;
   const actualTemperature = options?.temperature || providerConfig.temperature;
   const actualTimeoutMs = options?.timeoutMs || providerConfig.timeoutMs;
+  const extraHeaders = options?.headers;
 
   if (!actualApiKey) {
     throw new Error(
@@ -69,8 +71,7 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${actualApiKey}`,
-            "HTTP-Referer": "https://github.com/vanilla-agentic-framework",
-            "X-Title": "Vanilla Agentic Framework",
+            ...(extraHeaders || {}),
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal,
