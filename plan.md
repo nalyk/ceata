@@ -49,7 +49,7 @@ graph TD
 
 ## API Keys and Endpoints
 
-- **OpenAI API Key:** `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`
-- **OpenRouter API Key:** `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`
-- **Google API Key:** `AIzaSyDNeanFMIsWS-hJXZrgE93eonXDnN2SrrY`
+- **OpenAI API Key:** `YOUR_OPENAI_API_KEY`
+- **OpenRouter API Key:** `YOUR_OPENROUTER_API_KEY`
+- **Google API Key:** `YOUR_GOOGLE_API_KEY`
 - **Google Base URL:** `https://ai-api.yoda.digital`
