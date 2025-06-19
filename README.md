@@ -206,8 +206,10 @@ src/
 ## 🧪 Testing
 
 ```bash
-npm run example
+npm test
 ```
+
+This command builds the TypeScript sources and then runs the unit tests using Node's test runner.
 
 GitHub Actions CI runs lint, unit tests, and an end-to-end agent flow.
 
