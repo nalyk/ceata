@@ -212,7 +212,7 @@ GitHub Actions CI runs lint, unit tests, and an end-to-end agent flow.
 
 ## 📜 License
 
-MIT
+This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
