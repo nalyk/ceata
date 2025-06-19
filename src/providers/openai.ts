@@ -1,5 +1,7 @@
 import { Provider, ChatMessage, Tool, ChatResult } from "../core/Provider.js";
 import { config } from "../config/index.js";
+import { buildOpenAIMessages } from "./utils.js";
+import { postJSON } from "../core/http.js";
 
 export function createOpenAIProvider(apiKey?: string, baseUrl?: string, options?: {
   maxTokens?: number;
@@ -22,29 +24,10 @@ export function createOpenAIProvider(apiKey?: string, baseUrl?: string, options?
     supportsTools: true,
     async chat(options) {
       const { model, messages, tools, timeoutMs = actualTimeoutMs } = options;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      try {
-        const requestBody: any = {
+
+      const requestBody: any = {
           model,
-          messages: messages.map(msg => {
-            const messagePayload: any = { role: msg.role };
-            if (msg.content) {
-              messagePayload.content = msg.content;
-            }
-            if (msg.tool_calls) {
-              messagePayload.tool_calls = msg.tool_calls;
-            }
-            if (msg.tool_call_id) {
-              messagePayload.tool_call_id = msg.tool_call_id;
-            }
-            if (msg.name) {
-              messagePayload.name = msg.name;
-            }
-            return messagePayload;
-          }),
+          messages: buildOpenAIMessages(messages),
           max_tokens: actualMaxTokens,
         };
 
@@ -60,15 +43,12 @@ export function createOpenAIProvider(apiKey?: string, baseUrl?: string, options?
           requestBody.tool_choice = "auto";
         }
 
-        const response = await fetch(`${actualBaseUrl}/v1/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${actualApiKey}`,
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        });
+        const response = await postJSON(
+          `${actualBaseUrl}/v1/chat/completions`,
+          { Authorization: `Bearer ${actualApiKey}` },
+          requestBody,
+          timeoutMs,
+        );
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -116,12 +96,9 @@ export function createOpenAIProvider(apiKey?: string, baseUrl?: string, options?
         };
 
         return result;
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    },
-  };
-}
+      },
+    };
+  }
 
 // Export default instance using configuration
 export const openai = createOpenAIProvider();
