@@ -43,10 +43,18 @@ npm run example   # run the sample math agent
 ```typescript
 import { defineTool } from "./dist/core/Tool.js";
 import { runAgent, ProviderConfig } from "./dist/core/AgentRunner.js";
-import { openRouter } from "./dist/providers/openrouter.js";
+import { createOpenRouterProvider } from "./dist/providers/openrouter.js";
 import { google } from "./dist/providers/google.js";
 import { openai } from "./dist/providers/openai.js";
 import { config } from "./dist/config/index.js";
+
+// Create an OpenRouter provider with custom headers
+const openRouter = createOpenRouterProvider(undefined, undefined, {
+  headers: {
+    "HTTP-Referer": "https://example.com",
+    "X-Title": "Ceata Example",
+  },
+});
 
 // 1️⃣  Define a calculator tool
 const add = defineTool({
