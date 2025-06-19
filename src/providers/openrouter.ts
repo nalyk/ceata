@@ -1,5 +1,7 @@
 import { Provider, ChatMessage, Tool, ChatResult } from "../core/Provider.js";
 import { config } from "../config/index.js";
+import { buildOpenAIMessages } from "./utils.js";
+import { postJSON } from "../core/http.js";
 
 export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, options?: {
   maxTokens?: number;
@@ -27,31 +29,12 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
     async chat(options) {
       const { model, messages, tools, timeoutMs = actualTimeoutMs } = options;
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      try {
-        const requestBody: any = {
-          model,
-          messages: messages.map(msg => {
-            const messagePayload: any = { role: msg.role };
-            if (msg.content) {
-              messagePayload.content = msg.content;
-            }
-            if (msg.tool_calls) {
-              messagePayload.tool_calls = msg.tool_calls;
-            }
-            if (msg.tool_call_id) {
-              messagePayload.tool_call_id = msg.tool_call_id;
-            }
-            if (msg.name) {
-              messagePayload.name = msg.name;
-            }
-            return messagePayload;
-          }),
-          max_tokens: actualMaxTokens,
-          temperature: actualTemperature,
-        };
+      const requestBody: any = {
+        model,
+        messages: buildOpenAIMessages(messages),
+        max_tokens: actualMaxTokens,
+        temperature: actualTemperature,
+      };
 
         // Add tools if supported and provided
         if (tools && Object.keys(tools).length > 0) {
@@ -66,16 +49,12 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
           requestBody.tool_choice = "auto";
         }
 
-        const response = await fetch(`${actualBaseUrl}/api/v1/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${actualApiKey}`,
-            ...(extraHeaders || {}),
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        });
+        const response = await postJSON(
+          `${actualBaseUrl}/api/v1/chat/completions`,
+          { Authorization: `Bearer ${actualApiKey}`, ...(extraHeaders || {}) },
+          requestBody,
+          timeoutMs,
+        );
 
         if (!response.ok) {
           throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
@@ -158,12 +137,9 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
         };
 
         return result;
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    },
-  };
-}
+      },
+    };
+  }
 
 /**
  * Comprehensive JSON normalization for OpenRouter responses

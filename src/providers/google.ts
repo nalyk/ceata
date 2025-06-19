@@ -1,5 +1,6 @@
 import { Provider, ChatMessage, Tool, ChatResult } from "../core/Provider.js";
 import { config } from "../config/index.js";
+import { postJSON } from "../core/http.js";
 
 // Helper function to convert OpenAI-style messages to Google format
 function convertMessagesToGoogleFormat(messages: ChatMessage[]) {
@@ -91,12 +92,8 @@ export function createGoogleProvider(apiKey?: string, baseUrl?: string, options?
     supportsTools: true,
     async chat(options) {
       const { model, messages, tools, timeoutMs = actualTimeoutMs } = options;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      try {
-        const contents = convertMessagesToGoogleFormat(messages);
+
+      const contents = convertMessagesToGoogleFormat(messages);
         
         const requestBody: any = {
           contents,
@@ -125,14 +122,12 @@ export function createGoogleProvider(apiKey?: string, baseUrl?: string, options?
         const url = new URL(`${actualBaseUrl}/v1beta/${apiModel}:generateContent`);
         url.searchParams.append("key", actualApiKey);
 
-        const response = await fetch(url.toString(), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        });
+        const response = await postJSON(
+          url.toString(),
+          {},
+          requestBody,
+          timeoutMs,
+        );
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -206,11 +201,7 @@ export function createGoogleProvider(apiKey?: string, baseUrl?: string, options?
             total: data.usageMetadata.totalTokenCount || 0,
           } : undefined,
         };
-
         return result;
-      } finally {
-        clearTimeout(timeoutId);
-      }
     },
   };
 }
