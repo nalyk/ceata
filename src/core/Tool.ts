@@ -5,15 +5,15 @@ export function defineTool<TInput, TOutput>(options: {
   description: string;
   parameters: unknown;
   execute: (args: TInput) => Promise<TOutput>;
-}): Tool {
+}): Tool<TInput, TOutput> {
   return {
     schema: {
       name: options.name,
       description: options.description,
       parameters: options.parameters,
     },
-    execute: async (args: unknown): Promise<unknown> => {
-      return await options.execute(args as TInput);
+    execute: async (args: TInput): Promise<TOutput> => {
+      return await options.execute(args);
     },
   };
 }

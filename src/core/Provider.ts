@@ -21,9 +21,9 @@ export interface ToolSchema {
   parameters: unknown;
 }
 
-export interface Tool {
+export interface Tool<TInput = unknown, TOutput = unknown> {
   schema: ToolSchema;
-  execute: (args: unknown) => Promise<unknown>;
+  execute: (args: TInput) => Promise<TOutput>;
 }
 
 export interface ChatResult {
@@ -40,7 +40,7 @@ export interface Provider {
   chat(options: {
     model: string;
     messages: ChatMessage[];
-    tools?: Record<string, Tool>;
+    tools?: Record<string, Tool<any, any>>;
     stream?: boolean;
     timeoutMs?: number;
   }): AsyncIterable<ChatResult> | Promise<ChatResult>;
