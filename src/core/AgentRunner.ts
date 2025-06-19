@@ -21,7 +21,7 @@ function tryParseJson(text: string) {
 
 export async function runAgent(
   messages: ChatMessage[],
-  tools: Record<string, Tool>,
+  tools: Record<string, Tool<any, any>>, 
   providers: ProviderConfig[],
   maxSteps = 8,
 ): Promise<ChatMessage[]> {
@@ -119,7 +119,7 @@ export async function runAgent(
 
 async function tryProviders(
   messages: ChatMessage[],
-  tools: Record<string, Tool>,
+  tools: Record<string, Tool<any, any>>, 
   providers: ProviderConfig[],
 ): Promise<ChatResult | null> {
   const providerConfigs = providers
@@ -158,7 +158,7 @@ async function tryProviders(
 async function callProvider(
   providerConfig: ProviderConfig,
   messages: ChatMessage[],
-  tools: Record<string, Tool>
+  tools: Record<string, Tool<any, any>>
 ): Promise<ChatResult | null> {
   const { p: provider, model } = providerConfig;
   
