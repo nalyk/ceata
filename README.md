@@ -161,6 +161,7 @@ interface ProviderConfig {
   p: Provider;
   model: string;
   priority: "primary" | "fallback";
+  timeoutMs?: number;
 }
 
 interface ChatMessage {
