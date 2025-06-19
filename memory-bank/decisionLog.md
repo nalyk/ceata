@@ -17,3 +17,5 @@ This file records architectural and implementation decisions using a list format
 
 - The `AgentRunner` will be responsible for managing the fallback logic.
 - The `ProviderConfig` interface will include a `priority` field to distinguish between primary and fallback providers.
+
+[2025-06-19 17:41:21] - **Created RATIONALE.md**: A new document, `RATIONALE.md`, was created to explain the core philosophy, technical decisions, and strategic reasoning behind the Ceata framework's architecture. This serves as a guide for new contributors and users.

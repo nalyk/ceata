@@ -13,6 +13,10 @@ Your AI agents form exactly such a **ceată**: independent minds working towards
 
 ---
 
+For a deeper dive into the project's design philosophy and technical decisions, please see our [**Rationale Document**](./RATIONALE.md).
+
+---
+
 ## 🚀 Features
 
 - 🔄 **Smart Provider Fallback** – free models first, paid models only when critical
