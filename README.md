@@ -34,6 +34,7 @@ For a deeper dive into the project's design philosophy and technical decisions, 
 git clone https://github.com/nalyk/ceata.git
 cd ceata
 npm install
+cp .env.example .env # add your API keys
 npm run build     # ES Modules in dist/
 npm run example   # run the sample math agent
 ```
@@ -106,7 +107,7 @@ console.log(response);
 
 ## 🔧 Provider Setup
 
-Provider configuration is handled by the central `src/config/index.ts` file, which reads from environment variables (`.env` file). You can override the defaults by setting the corresponding environment variables.
+Provider configuration is handled by the central `src/config/index.ts` file, which directly reads from environment variables. If a `.env` file is present, it is loaded automatically using built-in Node.js APIs. You can override the defaults by setting the corresponding environment variables.
 
 Each `create*Provider` function verifies that an API key is available. If the resolved key is empty, it throws an error, so be sure to set the appropriate environment variable or pass the key explicitly.
 
