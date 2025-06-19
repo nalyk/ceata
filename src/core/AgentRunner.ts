@@ -1,9 +1,11 @@
 import { ChatMessage, Tool, Provider, ChatResult } from "./Provider.js";
+import { config } from "../config/index.js";
 
 export interface ProviderConfig {
   p: Provider;
   model: string;
   priority: "primary" | "fallback";
+  timeoutMs?: number;
 }
 
 function tryParseJson(text: string) {
@@ -158,15 +160,19 @@ async function tryProviders(
 async function callProvider(
   providerConfig: ProviderConfig,
   messages: ChatMessage[],
-  tools: Record<string, Tool<any, any>>
+  tools: Record<string, Tool<any, any>>,
+  optionsOverride?: { timeoutMs?: number }
 ): Promise<ChatResult | null> {
   const { p: provider, model } = providerConfig;
   
+  const timeoutMs =
+    optionsOverride?.timeoutMs ?? providerConfig.timeoutMs ?? config.defaults.timeoutMs;
+
   const options = {
     model,
     messages,
     tools: provider.supportsTools ? tools : undefined,
-    timeoutMs: 30000, // 30 second timeout
+    timeoutMs,
   };
 
   const response = await provider.chat(options);
