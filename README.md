@@ -35,6 +35,7 @@ git clone https://github.com/nalyk/ceata.git
 cd ceata
 npm install
 npm run build     # ES Modules in dist/
+npm run example   # run the sample math agent
 ```
 
 ### Hello Ceata
@@ -194,8 +195,7 @@ src/
 ## 🧪 Testing
 
 ```bash
-npm run build
-node dist/examples/mathAgent.js
+npm run example
 ```
 
 GitHub Actions CI runs lint, unit tests, and an end-to-end agent flow.

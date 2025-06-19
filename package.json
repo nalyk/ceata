@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc -p .",
-    "dev": "npm run build -- -w"
+    "dev": "npm run build -- -w",
+    "example": "npm run build && node dist/examples/mathAgent.js"
   },
   "dependencies": {
     "dotenv": "^16.5.0"
