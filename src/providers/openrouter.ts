@@ -13,6 +13,12 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
   const actualTemperature = options?.temperature || providerConfig.temperature;
   const actualTimeoutMs = options?.timeoutMs || providerConfig.timeoutMs;
 
+  if (!actualApiKey) {
+    throw new Error(
+      "OpenRouter provider requires a non-empty API key. Set OPENROUTER_API_KEY or pass it to createOpenRouterProvider().",
+    );
+  }
+
   return {
     id: "openrouter",
     supportsTools: true,

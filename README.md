@@ -100,6 +100,8 @@ console.log(response);
 
 Provider configuration is handled by the central `src/config/index.ts` file, which reads from environment variables (`.env` file). You can override the defaults by setting the corresponding environment variables.
 
+Each `create*Provider` function verifies that an API key is available. If the resolved key is empty, it throws an error, so be sure to set the appropriate environment variable or pass the key explicitly.
+
 ### `.env.example`
 
 ```

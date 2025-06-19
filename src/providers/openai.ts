@@ -11,6 +11,12 @@ export function createOpenAIProvider(apiKey?: string, baseUrl?: string, options?
   const actualMaxTokens = options?.maxTokens || providerConfig.maxTokens;
   const actualTimeoutMs = options?.timeoutMs || providerConfig.timeoutMs;
 
+  if (!actualApiKey) {
+    throw new Error(
+      "OpenAI provider requires a non-empty API key. Set OPENAI_API_KEY or pass it to createOpenAIProvider().",
+    );
+  }
+
   return {
     id: "openai",
     supportsTools: true,

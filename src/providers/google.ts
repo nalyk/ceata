@@ -80,6 +80,12 @@ export function createGoogleProvider(apiKey?: string, baseUrl?: string, options?
   const actualBaseUrl = baseUrl || providerConfig.baseUrl;
   const actualTimeoutMs = options?.timeoutMs || providerConfig.timeoutMs;
 
+  if (!actualApiKey) {
+    throw new Error(
+      "Google provider requires a non-empty API key. Set GOOGLE_API_KEY or pass it to createGoogleProvider().",
+    );
+  }
+
   return {
     id: "google",
     supportsTools: true,
