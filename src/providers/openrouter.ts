@@ -1,6 +1,7 @@
 import { Provider } from "../core/Provider.js";
 import { config } from "../config/index.js";
 import { createOpenAILikeProvider } from "./openaiLikeBase.js";
+import { logger } from "../core/logger.js";
 
 export function createOpenRouterProvider(
   apiKey?: string,
@@ -111,11 +112,11 @@ export function normalizeOpenRouterJSON(argsString: string): string | null {
 
     if (Object.keys(extracted).length > 0) {
       const result = JSON.stringify(extracted);
-      console.log('🔧 [OpenRouter] Manually extracted key-value pairs');
+      logger.debug('🔧 [OpenRouter] Manually extracted key-value pairs');
       return result;
     }
 
-    console.log('❌ [OpenRouter] All normalization strategies failed');
+    logger.debug('❌ [OpenRouter] All normalization strategies failed');
     return null;
   } catch (e) {
     console.error("❌ [OpenRouter] Error during JSON normalization:", e);

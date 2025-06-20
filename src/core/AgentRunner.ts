@@ -1,5 +1,6 @@
 import { ChatMessage, Tool, Provider, ChatResult } from "./Provider.js";
 import { config } from "../config/index.js";
+import { logger } from "./logger.js";
 
 export interface ProviderConfig {
   p: Provider;
@@ -90,10 +91,10 @@ export async function runAgent(
         const { name, arguments: args } = toolCall.function;
         if (tools[name]) {
           try {
-            console.log(`🔧 Executing tool: ${name} with args:`, args);
+            logger.debug(`🔧 Executing tool: ${name} with args:`, args);
             const parsedArgs = typeof args === 'string' ? JSON.parse(args) : args;
             const toolResult = await tools[name].execute(parsedArgs);
-            console.log(`✅ Tool ${name} executed successfully, result:`, toolResult);
+            logger.debug(`✅ Tool ${name} executed successfully, result:`, toolResult);
 
             const toolMessage: ChatMessage = {
               role: "tool",
@@ -127,10 +128,10 @@ export async function runAgent(
         if (tools[name]) {
           const toolCallId = `call_${name}_${Date.now()}`;
           try {
-            console.log(`🔧 Executing tool from text: ${name} with args:`, args);
+            logger.debug(`🔧 Executing tool from text: ${name} with args:`, args);
             const parsedArgs = typeof args === 'string' ? JSON.parse(args) : args;
             const toolResult = await tools[name].execute(parsedArgs);
-            console.log(`✅ Tool ${name} executed successfully, result:`, toolResult);
+            logger.debug(`✅ Tool ${name} executed successfully, result:`, toolResult);
             
             const toolMessage: ChatMessage = {
               role: "tool",
@@ -177,7 +178,7 @@ async function tryProviders(
   for (const providerConfig of providerConfigs) {
     try {
       const priority = providerConfig.priority === 'primary' ? 'primary' : 'fallback';
-      console.log(`🔄 Trying ${priority} provider: ${providerConfig.p.id}`);
+      logger.info(`🔄 Trying ${priority} provider: ${providerConfig.p.id}`);
       
       const result = await callProvider(providerConfig, messages, tools, { timeoutMs });
       
@@ -185,15 +186,18 @@ async function tryProviders(
         const lastMessage = result.messages[result.messages.length - 1];
         if (lastMessage) {
           if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
-            console.log(`🔧 Provider ${providerConfig.p.id} returned tool calls:`, lastMessage.tool_calls.map(tc => tc.function.name));
+            logger.debug(
+              `🔧 Provider ${providerConfig.p.id} returned tool calls:`,
+              lastMessage.tool_calls.map(tc => tc.function.name),
+            );
           } else if (lastMessage.content) {
-            console.log(`💬 Provider ${providerConfig.p.id} returned text response`);
+            logger.debug(`💬 Provider ${providerConfig.p.id} returned text response`);
           }
         }
         return result;
       }
     } catch (error) {
-      console.warn(`Provider ${providerConfig.p.id} failed:`, error);
+      logger.warn(`Provider ${providerConfig.p.id} failed:`, error);
     }
   }
 
