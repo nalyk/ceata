@@ -37,6 +37,7 @@ npm install
 cp .env.example .env # add your API keys
 npm run build     # ES Modules in dist/
 npm run example   # run the sample math agent
+node dist/examples/chatWithTools.js  # multi-step streaming demo
 ```
 
 ### Hello Ceata

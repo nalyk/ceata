@@ -20,6 +20,43 @@ function loadEnvFile(): void {
 }
 
 loadEnvFile();
+
+/** Validate required keys and numeric ranges */
+function validateConfig(): void {
+  const { providers, defaults } = config;
+  if (providers.openai.maxTokens <= 0) {
+    throw new Error('Invalid config: OPENAI_MAX_TOKENS must be > 0');
+  }
+  if (providers.openai.timeoutMs <= 0) {
+    throw new Error('Invalid config: OPENAI_TIMEOUT_MS must be > 0');
+  }
+  if (providers.openrouter.maxTokens <= 0) {
+    throw new Error('Invalid config: OPENROUTER_MAX_TOKENS must be > 0');
+  }
+  if (
+    providers.openrouter.temperature < 0 ||
+    providers.openrouter.temperature > 2
+  ) {
+    throw new Error(
+      'Invalid config: OPENROUTER_TEMPERATURE must be between 0 and 2',
+    );
+  }
+  if (providers.openrouter.timeoutMs <= 0) {
+    throw new Error('Invalid config: OPENROUTER_TIMEOUT_MS must be > 0');
+  }
+  if (providers.google.timeoutMs <= 0) {
+    throw new Error('Invalid config: GOOGLE_TIMEOUT_MS must be > 0');
+  }
+  if (defaults.maxTokens <= 0) {
+    throw new Error('Invalid config: DEFAULT_MAX_TOKENS must be > 0');
+  }
+  if (defaults.timeoutMs <= 0) {
+    throw new Error('Invalid config: DEFAULT_TIMEOUT_MS must be > 0');
+  }
+  if (defaults.temperature < 0 || defaults.temperature > 2) {
+    throw new Error('Invalid config: DEFAULT_TEMPERATURE must be between 0 and 2');
+  }
+}
 /**
  * Configuration management for the agentic framework
  * Supports environment variables with fallback defaults
@@ -121,6 +158,8 @@ export const config: AgenticConfig = {
     temperature: getEnvFloat('DEFAULT_TEMPERATURE', 0.7),
   },
 };
+
+validateConfig();
 
 /**
  * Update configuration at runtime
