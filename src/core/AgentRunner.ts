@@ -35,16 +35,17 @@ export function tryParseJson(text: string) {
 
 export async function runAgent(
   messages: ChatMessage[],
-  tools: Record<string, Tool<any, any>>, 
+  tools: Record<string, Tool<any, any>>,
   providers: ProviderConfig[],
   maxSteps = 8,
+  timeoutMs?: number,
 ): Promise<ChatMessage[]> {
   const conversationHistory = [...messages];
   let stepCount = 0;
 
   while (stepCount < maxSteps) {
     stepCount++;
-    const result = await tryProviders(conversationHistory, tools, providers);
+    const result = await tryProviders(conversationHistory, tools, providers, timeoutMs);
     if (!result) {
       throw new Error("All providers failed to respond");
     }
@@ -133,8 +134,9 @@ export async function runAgent(
 
 async function tryProviders(
   messages: ChatMessage[],
-  tools: Record<string, Tool<any, any>>, 
+  tools: Record<string, Tool<any, any>>,
   providers: ProviderConfig[],
+  timeoutMs?: number,
 ): Promise<ChatResult | null> {
   const providerConfigs = providers
     .slice()
@@ -148,7 +150,7 @@ async function tryProviders(
       const priority = providerConfig.priority === 'primary' ? 'primary' : 'fallback';
       console.log(`🔄 Trying ${priority} provider: ${providerConfig.p.id}`);
       
-      const result = await callProvider(providerConfig, messages, tools);
+      const result = await callProvider(providerConfig, messages, tools, { timeoutMs });
       
       if (result && result.messages && result.messages.length > 0) {
         const lastMessage = result.messages[result.messages.length - 1];
