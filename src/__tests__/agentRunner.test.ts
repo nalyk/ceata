@@ -147,3 +147,28 @@ test('forwards timeoutMs to provider', async () => {
 
   assert.equal(received, 999);
 });
+
+// Stream option forwarding
+test('forwards stream option to provider', async () => {
+  let received: boolean | undefined;
+  const p: Provider = {
+    id: 's',
+    supportsTools: true,
+    async chat(opts) {
+      received = (opts as any).stream;
+      return { messages: [...opts.messages, { role: 'assistant', content: 'ok' }], finishReason: 'stop' };
+    },
+  };
+
+  const providers: ProviderConfig[] = [
+    { p, model: 'm', priority: 'primary', stream: false },
+  ];
+
+  await runAgent(
+    [{ role: 'user', content: 'hi' }],
+    {},
+    providers,
+  );
+
+  assert.equal(received, false);
+});
