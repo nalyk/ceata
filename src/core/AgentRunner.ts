@@ -6,6 +6,7 @@ export interface ProviderConfig {
   model: string;
   priority: "primary" | "fallback";
   timeoutMs?: number;
+  stream?: boolean;
 }
 
 export function tryParseJson(text: string) {
@@ -187,7 +188,7 @@ async function callProvider(
     messages,
     tools: provider.supportsTools ? tools : undefined,
     timeoutMs,
-    stream: true,
+    stream: providerConfig.stream ?? true,
   };
 
   const response = await provider.chat(options);
