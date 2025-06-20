@@ -120,3 +120,30 @@ test('executes tools returned by the provider', async () => {
   assert.deepEqual(history.map(m => m.role), ['user', 'assistant', 'tool', 'assistant']);
   assert.equal(history[history.length - 1].content, 'Result is 3');
 });
+
+// Timeout forwarding
+test('forwards timeoutMs to provider', async () => {
+  let received: number | undefined;
+  const p: Provider = {
+    id: 't',
+    supportsTools: true,
+    async chat(opts) {
+      received = (opts as any).timeoutMs;
+      return { messages: [...opts.messages, { role: 'assistant', content: 'ok' }], finishReason: 'stop' };
+    },
+  };
+
+  const providers: ProviderConfig[] = [
+    { p, model: 'm', priority: 'primary' },
+  ];
+
+  await runAgent(
+    [{ role: 'user', content: 'hi' }],
+    {},
+    providers,
+    8,
+    999,
+  );
+
+  assert.equal(received, 999);
+});
