@@ -1,16 +1,18 @@
-import { Provider, ChatMessage, Tool, ChatResult, ToolCall } from "../core/Provider.js";
+import { Provider } from "../core/Provider.js";
 import { config } from "../config/index.js";
-import { buildOpenAIMessages } from "./utils.js";
-import { postJSON } from "../core/http.js";
-import { streamSSE } from "../core/Stream.js";
+import { createOpenAILikeProvider } from "./openaiLikeBase.js";
 
-export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, options?: {
-  maxTokens?: number;
-  temperature?: number;
-  timeoutMs?: number;
-  headers?: Record<string, string>;
-  stream?: boolean;
-}): Provider {
+export function createOpenRouterProvider(
+  apiKey?: string,
+  baseUrl?: string,
+  options?: {
+    maxTokens?: number;
+    temperature?: number;
+    timeoutMs?: number;
+    headers?: Record<string, string>;
+    stream?: boolean;
+  },
+): Provider {
   const providerConfig = config.providers.openrouter;
   const actualApiKey = apiKey || providerConfig.apiKey;
   const actualBaseUrl = baseUrl || providerConfig.baseUrl;
@@ -26,235 +28,49 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
     );
   }
 
-  return {
+  return createOpenAILikeProvider({
     id: "openrouter",
-    supportsTools: true,
-    chat(options) {
-      const {
-        model,
-        messages,
-        tools,
-        stream = defaultStream,
-        timeoutMs = actualTimeoutMs,
-      } = options;
-      
-      const requestBody: any = {
-        model,
-        messages: buildOpenAIMessages(messages),
-        max_tokens: actualMaxTokens,
-        temperature: actualTemperature,
-        stream,
-      };
-
-        // Add tools if supported and provided
-        if (tools && Object.keys(tools).length > 0) {
-          requestBody.tools = Object.values(tools).map(tool => ({
-            type: "function",
-            function: {
-              name: tool.schema.name,
-              description: tool.schema.description,
-              parameters: tool.schema.parameters,
-            },
-          }));
-          requestBody.tool_choice = "auto";
-        }
-
-      if (stream) {
-        return (async function* () {
-          const response = await postJSON(
-            `${actualBaseUrl}/api/v1/chat/completions`,
-            { Authorization: `Bearer ${actualApiKey}`, ...(extraHeaders || {}) },
-            requestBody,
-            timeoutMs,
-          );
-
-          if (!response.ok) {
-            throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
-          }
-
-          const assistantMessage: ChatMessage = { role: "assistant", content: "" };
-          const toolMap = new Map<string, ToolCall>();
-          for await (const chunkText of streamSSE(response)) {
-            const data = JSON.parse(chunkText);
-            const choice = data.choices?.[0];
-            if (!choice) continue;
-            const delta = choice.delta || {};
-            if (typeof delta.content === "string") {
-                assistantMessage.content = (assistantMessage.content || "") + delta.content;
-              }
-              if (delta.tool_calls) {
-                if (!assistantMessage.tool_calls) assistantMessage.tool_calls = [];
-                for (const tc of delta.tool_calls as ToolCall[]) {
-                  let existing = toolMap.get(tc.id);
-                  if (!existing) {
-                    existing = { id: tc.id, type: "function", function: { name: tc.function.name, arguments: "" } };
-                    assistantMessage.tool_calls.push(existing);
-                    toolMap.set(tc.id, existing);
-                  }
-                  if (tc.function?.name) existing.function.name = tc.function.name;
-                  if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
-                }
-              }
-
-            const finish = choice.finish_reason;
-            let finalMessage = { ...assistantMessage };
-            if (finish && finalMessage.tool_calls) {
-              finalMessage.tool_calls = finalMessage.tool_calls.map(tc => {
-                if (tc.function && tc.function.arguments) {
-                  try {
-                    JSON.parse(tc.function.arguments);
-                      return tc;
-                    } catch {
-                      const fixed = normalizeOpenRouterJSON(tc.function.arguments);
-                      return fixed ? { ...tc, function: { ...tc.function, arguments: fixed } } : tc;
-                    }
-                  }
-                  return tc;
-                });
-              }
-            const res: ChatResult = {
-              messages: [...messages, finalMessage],
-              finishReason: finish === "tool_calls" ? "tool_call" : finish === "length" ? "length" : "stop",
-            };
-            yield res;
-            if (finish) return;
-          }
-        })();
-      }
-
-      return (async () => {
-        const response = await postJSON(
-          `${actualBaseUrl}/api/v1/chat/completions`,
-          { Authorization: `Bearer ${actualApiKey}`, ...(extraHeaders || {}) },
-          requestBody,
-          timeoutMs,
-        );
-
-        if (!response.ok) {
-          throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
-        }
-
-        const responseText = await response.text();
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (e) {
-          console.error("❌ OpenRouter: Failed to parse JSON response:", responseText);
-          throw new Error(`OpenRouter failed to return valid JSON. Response: ${responseText}`);
-        }
-
-        if (!data.choices || data.choices.length === 0) {
-          if (data.error) {
-            const errorMessage = `OpenRouter API Error: ${data.error.message} (Code: ${data.error.code || 'N/A'})`;
-            console.error(`❌ ${errorMessage}`);
-            throw new Error(errorMessage);
-          }
-          throw new Error("Invalid response from OpenRouter: no choices returned");
-        }
-        
-        const choice = data.choices[0];
-        
-        if (!choice) {
-          throw new Error("No response from OpenRouter");
-        }
-
-        // Handle tool calls with robust JSON parsing
-        let toolCalls = choice.message.tool_calls;
-        if (toolCalls) {
-          toolCalls = toolCalls.map((tc: any) => {
-            if (tc.function && tc.function.arguments) {
-              try {
-                // Try to parse the arguments as JSON
-                JSON.parse(tc.function.arguments);
-                return tc;
-              } catch (e) {
-                console.log('🔧 [OpenRouter] Attempting to fix malformed JSON arguments...');
-                
-                // Apply comprehensive JSON normalization strategies
-                const argsString = tc.function.arguments;
-                let fixedArgs = normalizeOpenRouterJSON(argsString);
-                
-                if (fixedArgs) {
-                  console.log('✅ [OpenRouter] Successfully normalized JSON arguments');
-                  return {
-                    ...tc,
-                    function: {
-                      ...tc.function,
-                      arguments: fixedArgs
-                    }
-                  };
-                }
-                
-                console.error('❌ [OpenRouter] Failed to normalize JSON arguments:', argsString);
-                throw new Error(`Invalid JSON in tool call arguments: ${argsString}`);
-              }
-            }
-            return tc;
-          });
-        }
-
-        const assistantMessage: ChatMessage = {
-          role: "assistant",
-          content: choice.message.content || null,
-          tool_calls: toolCalls,
-        };
-
-        const result: ChatResult = {
-          messages: [...messages, assistantMessage],
-          finishReason: choice.finish_reason === "tool_calls" ? "tool_call" :
-                       choice.finish_reason === "length" ? "length" : "stop",
-          usage: data.usage ? {
-            prompt: data.usage.prompt_tokens,
-            completion: data.usage.completion_tokens,
-            total: data.usage.total_tokens,
-          } : undefined,
-        };
-
-        return result;
-      })();
-      },
-    };
-  }
+    apiKey: actualApiKey,
+    baseUrl: actualBaseUrl,
+    path: "/api/v1/chat/completions",
+    headers: extraHeaders,
+    maxTokens: actualMaxTokens,
+    temperature: actualTemperature,
+    timeoutMs: actualTimeoutMs,
+    defaultStream,
+    normalizeToolArgs: normalizeOpenRouterJSON,
+    errorPrefix: "OpenRouter",
+  });
+}
 
 /**
  * Comprehensive JSON normalization for OpenRouter responses
  */
 export function normalizeOpenRouterJSON(argsString: string): string | null {
   try {
-    // Strategy 1: Direct parsing (might work if it's actually valid)
     JSON.parse(argsString);
     return argsString;
-  } catch (e) {
-    console.log('🔧 [OpenRouter] Strategy 1 failed, trying normalization...');
-  }
+  } catch {}
 
   try {
-    // Strategy 2: Remove duplicate JSON objects (common OpenRouter issue)
-    console.log('🔧 [OpenRouter] Attempting duplicate removal...');
     const duplicatePattern = /(\{[^}]+\})\s*\1+/g;
-    let normalized = argsString.replace(duplicatePattern, '$1');
-    
-    // Strategy 3: Extract first valid JSON object
+    let normalized = argsString.replace(duplicatePattern, "$1");
+
     const jsonMatches = normalized.match(/\{[^}]*\}/g);
     if (jsonMatches && jsonMatches.length > 0) {
       for (const match of jsonMatches) {
         try {
           JSON.parse(match);
-          console.log('🔧 [OpenRouter] Found valid JSON object');
           return match;
-        } catch (e) {
+        } catch {
           continue;
         }
       }
     }
 
-    // Strategy 4: Try more complex JSON patterns
-    console.log('🔧 [OpenRouter] Attempting complex pattern matching...');
     const complexPatterns = [
-      // Match complete JSON objects with nested structures
       /\{\s*"[^"]+"\s*:\s*[^,}]+(?:\s*,\s*"[^"]+"\s*:\s*[^,}]+)*\s*\}/g,
-      // Even simpler key-value patterns
-      /\{\s*"[^"]+"\s*:\s*(?:"[^"]*"|\d+|true|false|null)\s*\}/g
+      /\{\s*"[^"]+"\s*:\s*(?:"[^"]*"|\d+|true|false|null)\s*\}/g,
     ];
 
     for (const pattern of complexPatterns) {
@@ -263,17 +79,14 @@ export function normalizeOpenRouterJSON(argsString: string): string | null {
         for (const match of matches) {
           try {
             JSON.parse(match);
-            console.log('🔧 [OpenRouter] Complex pattern match successful');
             return match;
-          } catch (e) {
+          } catch {
             continue;
           }
         }
       }
     }
 
-    // Strategy 5: Manual key-value extraction as last resort
-    console.log('🔧 [OpenRouter] Attempting manual key-value extraction...');
     const keyValuePattern = /"([^"]+)"\s*:\s*(?:"([^"]*)"|(\d+(?:\.\d+)?)|true|false|null)/g;
     const extracted: any = {};
     let kvMatch;
@@ -282,7 +95,7 @@ export function normalizeOpenRouterJSON(argsString: string): string | null {
       const key = kvMatch[1];
       const stringValue = kvMatch[2];
       const numberValue = kvMatch[3];
-      
+
       if (stringValue !== undefined) {
         extracted[key] = stringValue;
       } else if (numberValue !== undefined) {
@@ -305,9 +118,10 @@ export function normalizeOpenRouterJSON(argsString: string): string | null {
     console.log('❌ [OpenRouter] All normalization strategies failed');
     return null;
   } catch (e) {
-    console.error('❌ [OpenRouter] Error during JSON normalization:', e);
+    console.error("❌ [OpenRouter] Error during JSON normalization:", e);
     return null;
   }
+  return null;
 }
 
 // Export default instance using configuration
