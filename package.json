@@ -7,7 +7,7 @@
     "build": "tsc -p .",
     "dev": "npm run build -- -w",
     "example": "npm run build && node dist/examples/mathAgent.js",
-    "test": "npm run build && node --test dist/__tests__"
+    "test": "npm run build && node --experimental-test-module-mocks --test dist/__tests__"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
