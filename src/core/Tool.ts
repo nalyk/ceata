@@ -1,5 +1,8 @@
 import { Tool } from "./Provider.js";
 
+// Re-export Tool for convenience
+export type { Tool } from "./Provider.js";
+
 export function defineTool<TInput, TOutput>(options: {
   name: string;
   description: string;

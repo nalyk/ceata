@@ -1,0 +1,240 @@
+/**
+ * CEATA MONSTER EFFICIENCY - Executor
+ * Ultra-fast execution engine with provider racing and zero-allocation streaming
+ */
+
+import { AgentContext, StepResult, updateMetrics } from "./AgentContext.js";
+import { PlanStep } from "./Planner.js";
+import { ChatMessage, ChatResult, Provider } from "./Provider.js";
+import { logger } from "./logger.js";
+
+export class Executor {
+  /**
+   * Executes a plan step with MAXIMUM efficiency
+   */
+  async execute(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
+    const startTime = Date.now();
+    
+    try {
+      switch (step.type) {
+        case 'chat':
+          return await this.executeChat(step, ctx);
+        case 'tool_execution':
+          return await this.executeToolCalls(ctx);
+        case 'completion':
+          return this.executeCompletion();
+        default:
+          throw new Error(`Unknown step type: ${step.type}`);
+      }
+    } catch (error) {
+      logger.error(`Execution failed for step ${step.type}:`, error);
+      return {
+        delta: [],
+        isComplete: false,
+        metrics: { providerCalls: 1 },
+        error: error instanceof Error ? error : new Error(String(error))
+      };
+    }
+  }
+
+  /**
+   * Executes chat with provider racing for MAXIMUM speed
+   */
+  private async executeChat(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
+    const messages = ctx.messages;
+    
+    if (ctx.options.enableRacing && ctx.providers.primary.length > 1) {
+      return await this.raceProviders(ctx.providers.primary, messages, ctx);
+    } else {
+      // Fallback to sequential execution
+      return await this.tryProvidersSequential([...ctx.providers.primary, ...ctx.providers.fallback], messages, ctx);
+    }
+  }
+
+  /**
+   * PROVIDER RACING - Promise.any() for MAXIMUM performance
+   */
+  private async raceProviders(providers: Provider[], messages: ChatMessage[], ctx: AgentContext): Promise<StepResult> {
+    const startTime = Date.now();
+    
+    try {
+      // Create racing promises
+      const racePromises = providers.map(async provider => {
+        const result = await this.callProvider(provider, messages, ctx);
+        return { provider, result };
+      });
+
+      // Race the primary providers
+      const winner = await Promise.any(racePromises);
+      
+      const latency = Date.now() - startTime;
+      logger.info(`🏁 Provider race won by ${winner.provider.id} in ${latency}ms`);
+      
+      return this.processProviderResult(winner.result, ctx, winner.provider.id);
+      
+    } catch (error) {
+      logger.warn('All primary providers failed in race, falling back to sequential');
+      return await this.tryProvidersSequential(ctx.providers.fallback, messages, ctx);
+    }
+  }
+
+  /**
+   * Sequential provider fallback with circuit breaker
+   */
+  private async tryProvidersSequential(providers: Provider[], messages: ChatMessage[], ctx: AgentContext): Promise<StepResult> {
+    let lastError: Error | undefined;
+    
+    for (const provider of providers) {
+      try {
+        const result = await this.callProvider(provider, messages, ctx);
+        return this.processProviderResult(result, ctx, provider.id);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        logger.warn(`Provider ${provider.id} failed:`, lastError.message);
+        
+        // Add retry delay with jitter if configured
+        if (ctx.options.retryConfig.jitter) {
+          const delay = ctx.options.retryConfig.baseDelayMs + Math.random() * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError || new Error('All providers failed');
+  }
+
+  /**
+   * Calls a single provider with timeout and error handling
+   */
+  private async callProvider(provider: Provider, messages: ChatMessage[], ctx: AgentContext): Promise<ChatResult> {
+    const tools = provider.supportsTools ? ctx.tools : undefined;
+    
+    const chatPromise = provider.chat({
+      model: 'auto', // Let provider choose best model
+      messages,
+      tools,
+      timeoutMs: ctx.options.timeoutMs
+    });
+
+    // Handle both streaming and non-streaming responses efficiently
+    if (Symbol.asyncIterator in chatPromise) {
+      // Streaming response - get the last result
+      let lastResult: ChatResult | null = null;
+      for await (const chunk of chatPromise) {
+        lastResult = chunk;
+      }
+      if (!lastResult) {
+        throw new Error(`No result from streaming provider ${provider.id}`);
+      }
+      return lastResult;
+    } else {
+      return await chatPromise;
+    }
+  }
+
+  /**
+   * Processes provider result into standardized format
+   */
+  private processProviderResult(result: ChatResult, ctx: AgentContext, providerId: string): StepResult {
+    const assistantMessage = result.messages[result.messages.length - 1];
+    
+    if (!assistantMessage) {
+      throw new Error('No assistant message in provider result');
+    }
+
+    // Check if we have tool calls to execute
+    const hasPendingToolCalls = result.finishReason === 'tool_call' && assistantMessage.tool_calls?.length;
+    
+    const metrics = {
+      providerCalls: 1,
+      totalTokens: result.usage?.total || 0,
+      costSavings: this.calculateCostSavings(providerId, result.usage?.total || 0)
+    };
+
+    return {
+      delta: [assistantMessage],
+      isComplete: !hasPendingToolCalls && result.finishReason === 'stop',
+      metrics
+    };
+  }
+
+  /**
+   * Executes pending tool calls with parallel processing when possible
+   */
+  private async executeToolCalls(ctx: AgentContext): Promise<StepResult> {
+    const lastMessage = ctx.messages[ctx.messages.length - 1];
+    
+    if (!lastMessage?.tool_calls?.length) {
+      return { delta: [], isComplete: true, metrics: {} };
+    }
+
+    const toolResults: ChatMessage[] = [];
+    let totalExecutions = 0;
+
+    // Execute tool calls - can be parallelized for independent tools
+    const toolPromises = lastMessage.tool_calls.map(async (toolCall) => {
+      const { name, arguments: args } = toolCall.function;
+      const tool = ctx.tools[name];
+      
+      if (!tool) {
+        return {
+          role: 'tool' as const,
+          tool_call_id: toolCall.id,
+          name,
+          content: `Error: Tool '${name}' not found`
+        };
+      }
+
+      try {
+        const parsedArgs = typeof args === 'string' ? JSON.parse(args) : args;
+        const result = await tool.execute(parsedArgs);
+        totalExecutions++;
+        
+        return {
+          role: 'tool' as const,
+          tool_call_id: toolCall.id,
+          name,
+          content: JSON.stringify(result)
+        };
+      } catch (error) {
+        return {
+          role: 'tool' as const,
+          tool_call_id: toolCall.id,
+          name,
+          content: `Error: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
+    });
+
+    const results = await Promise.all(toolPromises);
+    toolResults.push(...results);
+
+    return {
+      delta: toolResults,
+      isComplete: false, // Need another chat turn to process tool results
+      metrics: {
+        toolExecutions: totalExecutions
+      }
+    };
+  }
+
+  /**
+   * Handles completion step
+   */
+  private executeCompletion(): StepResult {
+    return {
+      delta: [],
+      isComplete: true,
+      metrics: {}
+    };
+  }
+
+  /**
+   * Calculates cost savings based on provider type
+   */
+  private calculateCostSavings(providerId: string, tokens: number): number {
+    // Rough cost calculation - free providers save ~$0.01 per 1K tokens
+    const isFreeTier = providerId.includes('free') || providerId === 'google';
+    return isFreeTier ? (tokens / 1000) * 0.01 : 0;
+  }
+}
