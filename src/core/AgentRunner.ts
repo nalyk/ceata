@@ -185,6 +185,7 @@ async function callProvider(
     messages,
     tools: provider.supportsTools ? tools : undefined,
     timeoutMs,
+    stream: true,
   };
 
   const response = await provider.chat(options);
