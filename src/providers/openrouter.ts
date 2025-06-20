@@ -1,13 +1,15 @@
-import { Provider, ChatMessage, Tool, ChatResult } from "../core/Provider.js";
+import { Provider, ChatMessage, Tool, ChatResult, ToolCall } from "../core/Provider.js";
 import { config } from "../config/index.js";
 import { buildOpenAIMessages } from "./utils.js";
 import { postJSON } from "../core/http.js";
+import { streamSSE } from "../core/Stream.js";
 
 export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, options?: {
   maxTokens?: number;
   temperature?: number;
   timeoutMs?: number;
   headers?: Record<string, string>;
+  stream?: boolean;
 }): Provider {
   const providerConfig = config.providers.openrouter;
   const actualApiKey = apiKey || providerConfig.apiKey;
@@ -15,6 +17,7 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
   const actualMaxTokens = options?.maxTokens || providerConfig.maxTokens;
   const actualTemperature = options?.temperature || providerConfig.temperature;
   const actualTimeoutMs = options?.timeoutMs || providerConfig.timeoutMs;
+  const defaultStream = options?.stream ?? false;
   const extraHeaders = options?.headers;
 
   if (!actualApiKey) {
@@ -26,14 +29,21 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
   return {
     id: "openrouter",
     supportsTools: true,
-    async chat(options) {
-      const { model, messages, tools, timeoutMs = actualTimeoutMs } = options;
+    chat(options) {
+      const {
+        model,
+        messages,
+        tools,
+        stream = defaultStream,
+        timeoutMs = actualTimeoutMs,
+      } = options;
       
       const requestBody: any = {
         model,
         messages: buildOpenAIMessages(messages),
         max_tokens: actualMaxTokens,
         temperature: actualTemperature,
+        stream,
       };
 
         // Add tools if supported and provided
@@ -49,6 +59,70 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
           requestBody.tool_choice = "auto";
         }
 
+      if (stream) {
+        return (async function* () {
+          const response = await postJSON(
+            `${actualBaseUrl}/api/v1/chat/completions`,
+            { Authorization: `Bearer ${actualApiKey}`, ...(extraHeaders || {}) },
+            requestBody,
+            timeoutMs,
+          );
+
+          if (!response.ok) {
+            throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+          }
+
+          const assistantMessage: ChatMessage = { role: "assistant", content: "" };
+          const toolMap = new Map<string, ToolCall>();
+          for await (const chunkText of streamSSE(response)) {
+            const data = JSON.parse(chunkText);
+            const choice = data.choices?.[0];
+            if (!choice) continue;
+            const delta = choice.delta || {};
+            if (typeof delta.content === "string") {
+                assistantMessage.content = (assistantMessage.content || "") + delta.content;
+              }
+              if (delta.tool_calls) {
+                if (!assistantMessage.tool_calls) assistantMessage.tool_calls = [];
+                for (const tc of delta.tool_calls as ToolCall[]) {
+                  let existing = toolMap.get(tc.id);
+                  if (!existing) {
+                    existing = { id: tc.id, type: "function", function: { name: tc.function.name, arguments: "" } };
+                    assistantMessage.tool_calls.push(existing);
+                    toolMap.set(tc.id, existing);
+                  }
+                  if (tc.function?.name) existing.function.name = tc.function.name;
+                  if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
+                }
+              }
+
+            const finish = choice.finish_reason;
+            let finalMessage = { ...assistantMessage };
+            if (finish && finalMessage.tool_calls) {
+              finalMessage.tool_calls = finalMessage.tool_calls.map(tc => {
+                if (tc.function && tc.function.arguments) {
+                  try {
+                    JSON.parse(tc.function.arguments);
+                      return tc;
+                    } catch {
+                      const fixed = normalizeOpenRouterJSON(tc.function.arguments);
+                      return fixed ? { ...tc, function: { ...tc.function, arguments: fixed } } : tc;
+                    }
+                  }
+                  return tc;
+                });
+              }
+            const res: ChatResult = {
+              messages: [...messages, finalMessage],
+              finishReason: finish === "tool_calls" ? "tool_call" : finish === "length" ? "length" : "stop",
+            };
+            yield res;
+            if (finish) return;
+          }
+        })();
+      }
+
+      return (async () => {
         const response = await postJSON(
           `${actualBaseUrl}/api/v1/chat/completions`,
           { Authorization: `Bearer ${actualApiKey}`, ...(extraHeaders || {}) },
@@ -137,6 +211,7 @@ export function createOpenRouterProvider(apiKey?: string, baseUrl?: string, opti
         };
 
         return result;
+      })();
       },
     };
   }
