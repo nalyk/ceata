@@ -65,3 +65,4 @@ Thumbs.db
 
 # cache pentru compilare incrementală
 .tsbuildinfo
+.mcp.json

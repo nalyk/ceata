@@ -71,12 +71,32 @@ export async function runAgent(
 ): Promise<ChatMessage[]> {
   const conversationHistory = [...messages];
   let stepCount = 0;
+  let selectedProvider: ProviderConfig | null = null;
 
   while (stepCount < maxSteps) {
     stepCount++;
-    const result = await tryProviders(conversationHistory, tools, providers, timeoutMs);
+    
+    // Find a working provider only if we don't have one
+    if (!selectedProvider) {
+      selectedProvider = await findWorkingProvider(conversationHistory, tools, providers, timeoutMs);
+      if (!selectedProvider) {
+        throw new Error("All providers failed to respond");
+      }
+    }
+
+    // Use the selected provider for this conversation turn
+    let result: ChatResult | null = null;
+    try {
+      result = await callProvider(selectedProvider, conversationHistory, tools, { timeoutMs });
+    } catch (error) {
+      console.warn(`Provider ${selectedProvider.p.id} failed mid-conversation:`, error);
+      selectedProvider = null; // Reset to try other providers
+      continue;
+    }
+    
     if (!result) {
-      throw new Error("All providers failed to respond");
+      selectedProvider = null; // Reset to try other providers
+      continue;
     }
 
     const assistantMessage = result.messages[result.messages.length - 1];
@@ -159,6 +179,38 @@ export async function runAgent(
   }
 
   return conversationHistory;
+}
+
+async function findWorkingProvider(
+  messages: ChatMessage[],
+  tools: Record<string, Tool<any, any>>,
+  providers: ProviderConfig[],
+  timeoutMs?: number,
+): Promise<ProviderConfig | null> {
+  const providerConfigs = providers
+    .slice()
+    .sort((a, b) => {
+      if (a.priority === b.priority) return 0;
+      return a.priority === 'primary' ? -1 : 1;
+    });
+
+  for (const providerConfig of providerConfigs) {
+    try {
+      const priority = providerConfig.priority === 'primary' ? 'primary' : 'fallback';
+      console.log(`🔄 Trying ${priority} provider: ${providerConfig.p.id}`);
+      
+      const result = await callProvider(providerConfig, messages, tools, { timeoutMs });
+      
+      if (result && result.messages && result.messages.length > 0) {
+        console.log(`✅ Selected provider: ${providerConfig.p.id}`);
+        return providerConfig;
+      }
+    } catch (error) {
+      console.warn(`Provider ${providerConfig.p.id} failed:`, error);
+    }
+  }
+
+  return null;
 }
 
 async function tryProviders(
