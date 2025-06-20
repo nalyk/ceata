@@ -10,24 +10,52 @@ export interface ProviderConfig {
 }
 
 export function tryParseJson(text: string) {
-  const fencedRegex = /```json\s*([\s\S]*?)\s*```/;
+  // Fenced code block, ignoring escaped blocks like \```json
+  const fencedRegex = /(?<!\\)```json\s*([\s\S]*?)\s*```/i;
   const fencedMatch = text.match(fencedRegex);
   if (fencedMatch?.[1]) {
     try {
-      return JSON.parse(fencedMatch[1]);
+      return JSON.parse(fencedMatch[1].trim());
     } catch {
-      // ignore
+      // ignore and fall back to brace scanning
     }
   }
 
-  const first = text.indexOf('{');
-  const last = text.lastIndexOf('}');
-  if (first !== -1 && last !== -1 && last > first) {
-    const candidate = text.slice(first, last + 1);
-    try {
-      return JSON.parse(candidate);
-    } catch {
-      // ignore
+  // Scan for the first valid JSON object with balanced braces
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '{') {
+      let depth = 0;
+      let inString = false;
+      let escape = false;
+      for (let j = i; j < text.length; j++) {
+        const ch = text[j];
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (ch === '\\') {
+          escape = true;
+          continue;
+        }
+        if (ch === '"') {
+          inString = !inString;
+          continue;
+        }
+        if (!inString) {
+          if (ch === '{') depth++;
+          else if (ch === '}') {
+            depth--;
+            if (depth === 0) {
+              const candidate = text.slice(i, j + 1);
+              try {
+                return JSON.parse(candidate.trim());
+              } catch {
+                break; // malformed, search from next opening brace
+              }
+            }
+          }
+        }
+      }
     }
   }
 
