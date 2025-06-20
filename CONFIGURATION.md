@@ -48,6 +48,13 @@ DEFAULT_MAX_TOKENS=4000
 DEFAULT_TEMPERATURE=0.7
 ```
 
+### Configuration Validation
+
+After loading your `.env` file the framework validates the configuration.
+Timeouts and token limits must be positive numbers and temperatures must fall
+between `0` and `2`.  If any value is outside these ranges an error is thrown at
+startup.
+
 ## Runtime Configuration
 
 You can also configure providers at runtime:
