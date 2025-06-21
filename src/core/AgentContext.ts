@@ -1,6 +1,6 @@
 /**
- * CEATA MONSTER EFFICIENCY - Agent Context
- * Zero-allocation state management for high-performance agentic workflows
+ * CEATA Agent Context
+ * State management for high-performance agentic workflows
  */
 
 import { ChatMessage, Provider, ToolCall } from "./Provider.js";

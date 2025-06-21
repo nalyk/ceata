@@ -1,6 +1,6 @@
 /**
- * CEATA MONSTER EFFICIENCY - Planner
- * Ultra-fast planning engine for agentic workflows
+ * CEATA Planner
+ * Planning engine for agentic workflows
  */
 
 import { AgentContext, StepResult } from "./AgentContext.js";

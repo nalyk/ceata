@@ -1,8 +1,8 @@
-# Ceata – Universal Agentic Framework 🔥
+# Ceata – Universal Agentic Framework
 
 > Pronounced /ˈt͡ʃe.a.ta/ (Romanian **ceață** = a tight-knit band acting in unison)
 
-The **most efficient vanilla TypeScript agentic framework on Earth**. Features revolutionary MONSTER architecture with provider racing, parallel tool execution, and smart memory management. Built for the **commodity AI era** - maximize free model utility while achieving **maximum performance**.
+A TypeScript agentic framework with pipeline architecture featuring provider racing, parallel tool execution, and smart memory management. Built for the commodity AI era - maximize free model utility while maintaining performance.
 
 ---
 
@@ -13,7 +13,7 @@ Your AI agents form exactly such a **ceată**: independent minds working towards
 
 ---
 
-## 💡 The Economic Strategy
+## The Economic Strategy
 
 **Ceata** is built for the **commodity AI era** - the breakthrough moment when free, tool-capable models became viable for production agentic workflows.
 
@@ -35,9 +35,9 @@ For a deeper dive into the project's design philosophy and technical decisions, 
 
 ---
 
-## 🔥 MONSTER Architecture
+## Pipeline Architecture
 
-**MAXIMUM Efficiency Through Clean Pipeline Design**
+Efficient pipeline design
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐

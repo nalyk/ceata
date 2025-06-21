@@ -1,5 +1,5 @@
 /**
- * CEATA MONSTER EFFICIENCY - Reflector
+ * CEATA Reflector
  * Quality assurance and self-correction engine
  */
 

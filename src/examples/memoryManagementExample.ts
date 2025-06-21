@@ -49,7 +49,7 @@ const echoTool = defineTool({
     console.log(`📊 Starting with ${longConversation.length} messages in conversation history`);
 
     // Configure memory management options
-    const options: AgentOptions = {
+    const options = {
       maxSteps: 5,
       maxHistoryLength: 10, // Keep only last 10 messages + system messages
       preserveSystemMessages: true, // Always keep system messages

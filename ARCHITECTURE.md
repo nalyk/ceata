@@ -1,12 +1,12 @@
-# 🔥 CEATA MONSTER ARCHITECTURE
+# CEATA Architecture
 
-**The Most Efficient Vanilla TypeScript Agentic Framework on Earth**
+A TypeScript agentic framework with pipeline architecture
 
 ---
 
-## 🎯 **Architecture Overview**
+## Architecture Overview
 
-CEATA's MONSTER architecture replaces the original god-loop with a clean, efficient pipeline:
+CEATA uses a pipeline architecture with these core components:
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
@@ -19,13 +19,13 @@ CEATA's MONSTER architecture replaces the original god-loop with a clean, effici
    Planning             Racing              Assurance
 ```
 
-**Total: ~800 LOC of PURE EFFICIENCY** vs 460 LOC god-loop
+Total: ~800 lines of code across three main components
 
 ---
 
-## 🧠 **Core Components**
+## Core Components
 
-### **1. Planner (Brain)**
+### 1. Planner
 **File:** `src/core/Planner.ts` (120 LOC)
 
 **Responsibility:** Strategic decision making and execution planning
@@ -43,16 +43,16 @@ class Planner {
 }
 ```
 
-**Key Features:**
-- ⚡ **Lightweight heuristics** - No LLM calls for planning
-- 🎯 **Tool prediction** - Analyzes text for tool usage patterns
-- 📊 **Cost estimation** - Predicts API call requirements
-- 🔄 **Adaptive planning** - Adjusts based on execution results
+Key Features:
+- Lightweight heuristics - No LLM calls for planning
+- Tool prediction - Analyzes text for tool usage patterns
+- Cost estimation - Predicts API call requirements
+- Adaptive planning - Adjusts based on execution results
 
-### **2. Executor (Muscle)**
-**File:** `src/core/Executor.ts` (180 LOC)
+### 2. Executor
+File: `src/core/Executor.ts` (180 LOC)
 
-**Responsibility:** High-performance execution with provider racing
+Responsibility: Execution with provider racing
 
 ```typescript
 class Executor {
@@ -62,16 +62,16 @@ class Executor {
 }
 ```
 
-**Key Features:**
-- 🏁 **Provider Racing** - `Promise.any()` for maximum speed
-- ⚡ **Parallel Tool Execution** - Multiple tools run simultaneously
-- 🔄 **Circuit Breaker** - Intelligent retry with exponential backoff
-- 💾 **Zero-Allocation Streaming** - Efficient async generators
+Key Features:
+- Provider Racing - `Promise.any()` for speed
+- Parallel Tool Execution - Multiple tools run simultaneously
+- Circuit Breaker - Intelligent retry with exponential backoff
+- Streaming - Efficient async generators
 
-### **3. Reflector (Quality Assurance)**
-**File:** `src/core/Reflector.ts` (140 LOC)
+### 3. Reflector
+File: `src/core/Reflector.ts` (140 LOC)
 
-**Responsibility:** Quality control and self-correction
+Responsibility: Quality control and self-correction
 
 ```typescript
 class Reflector {
@@ -81,16 +81,16 @@ class Reflector {
 }
 ```
 
-**Key Features:**
-- 🔍 **Fast heuristic checks** - No LLM calls for basic validation
-- 🛠️ **Tool usage validation** - Ensures tools are used when needed
-- 📝 **Response quality** - Detects verbose/brief responses
-- 🎯 **Smart corrections** - Automatic response improvements
+Key Features:
+- Fast heuristic checks - No LLM calls for basic validation
+- Tool usage validation - Ensures tools are used when needed
+- Response quality - Detects verbose/brief responses
+- Smart corrections - Automatic response improvements
 
-### **4. AgentContext (State Management)**
-**File:** `src/core/AgentContext.ts` (80 LOC)
+### 4. AgentContext
+File: `src/core/AgentContext.ts` (80 LOC)
 
-**Responsibility:** Efficient state management and memory control
+Responsibility: State management and memory control
 
 ```typescript
 interface AgentContext {
@@ -102,16 +102,16 @@ interface AgentContext {
 }
 ```
 
-**Key Features:**
-- 🧠 **Smart Memory Management** - Automatic conversation pruning
-- 📊 **Performance Metrics** - Real-time efficiency tracking
-- 🎛️ **Configurable Options** - Fine-tune all behaviors
-- 🔒 **Immutable Updates** - Thread-safe state management
+Key Features:
+- Smart Memory Management - Automatic conversation pruning
+- Performance Metrics - Real-time efficiency tracking
+- Configurable Options - Fine-tune all behaviors
+- Immutable Updates - Thread-safe state management
 
-### **5. JsonStrategy (Revolutionary Parsing)**
-**File:** `src/core/JsonStrategy.ts` (160 LOC)
+### 5. JsonStrategy
+File: `src/core/JsonStrategy.ts` (160 LOC)
 
-**Responsibility:** Eliminating the regex circus with clean JSON handling
+Responsibility: Clean JSON handling
 
 ```typescript
 function extractJsonBlock(text: string): JsonExtractionResult

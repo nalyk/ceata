@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MonsterAgent, runMonsterAgent } from '../core/MonsterAgent.js';
+import { ConversationAgent } from '../core/ConversationAgent.js';
+import { runAgent } from '../core/AgentRunner.js';
 import { createAgentContext } from '../core/AgentContext.js';
 import { defineTool } from '../core/Tool.js';
 import type { Provider, ChatMessage } from '../core/Provider.js';
@@ -40,7 +41,7 @@ const mockTool = defineTool({
   execute: async ({ input }: { input: string }) => `Processed: ${input}`
 });
 
-test('MonsterAgent executes basic conversation', async () => {
+test('ConversationAgent executes basic conversation', async () => {
   const provider = createMockProvider('test', [
     { role: 'assistant', content: 'Hello! How can I help you?' }
   ]);
@@ -50,10 +51,10 @@ test('MonsterAgent executes basic conversation', async () => {
     fallback: []
   };
 
-  const result = await runMonsterAgent(
+  const result = await runAgent(
     [{ role: 'user', content: 'Hello' }],
     {},
-    providerGroup
+    [{ p: provider, model: 'test', priority: 'primary' }]
   );
 
   assert.equal(result.length, 2);
@@ -62,7 +63,7 @@ test('MonsterAgent executes basic conversation', async () => {
   assert.equal(result[1].content, 'Hello! How can I help you?');
 });
 
-test('MonsterAgent handles tool calls', async () => {
+test('ConversationAgent handles tool calls', async () => {
   const provider = createMockProvider('test', [
     {
       role: 'assistant',
@@ -82,15 +83,10 @@ test('MonsterAgent handles tool calls', async () => {
     }
   ]);
 
-  const providerGroup = {
-    primary: [provider],
-    fallback: []
-  };
-
-  const result = await runMonsterAgent(
+  const result = await runAgent(
     [{ role: 'user', content: 'Use the test tool' }],
     { test_tool: mockTool },
-    providerGroup
+    [{ p: provider, model: 'test', priority: 'primary' }]
   );
 
   // Should have: user message, assistant with tool call, tool result, final assistant response
@@ -100,12 +96,12 @@ test('MonsterAgent handles tool calls', async () => {
   assert.equal(result[3].content, 'Tool executed successfully!');
 });
 
-test('MonsterAgent with full metrics', async () => {
+test('ConversationAgent with full metrics', async () => {
   const provider = createMockProvider('test', [
     { role: 'assistant', content: 'Response' }
   ]);
 
-  const agent = new MonsterAgent();
+  const agent = new ConversationAgent();
   const result = await agent.run(
     [{ role: 'user', content: 'Test' }],
     {},
@@ -130,7 +126,7 @@ test('MonsterAgent with full metrics', async () => {
   assert.equal(typeof result.debug.reflections, 'number');
 });
 
-test('MonsterAgent handles provider racing', async () => {
+test('ConversationAgent handles provider racing', async () => {
   const fastProvider = createMockProvider('fast', [
     { role: 'assistant', content: 'Fast response' }
   ]);
@@ -148,13 +144,13 @@ test('MonsterAgent handles provider racing', async () => {
     }
   };
 
-  const result = await runMonsterAgent(
+  const result = await runAgent(
     [{ role: 'user', content: 'Test racing' }],
     {},
-    {
-      primary: [fastProvider, slowProvider],
-      fallback: []
-    },
+    [
+      { p: fastProvider, model: 'test', priority: 'primary' },
+      { p: slowProvider, model: 'test', priority: 'primary' }
+    ],
     { enableRacing: true }
   );
 
@@ -162,7 +158,7 @@ test('MonsterAgent handles provider racing', async () => {
   assert.equal(result[1].content, 'Fast response');
 });
 
-test('MonsterAgent handles memory management', async () => {
+test('ConversationAgent handles memory management', async () => {
   const provider = createMockProvider('test', [
     { role: 'assistant', content: 'Response' }
   ]);
@@ -177,13 +173,10 @@ test('MonsterAgent handles memory management', async () => {
     { role: 'user' as const, content: 'Final message' }
   ];
 
-  const result = await runMonsterAgent(
+  const result = await runAgent(
     longMessages,
     {},
-    {
-      primary: [provider],
-      fallback: []
-    },
+    [{ p: provider, model: 'test', priority: 'primary' }],
     {
       maxHistoryLength: 10,
       preserveSystemMessages: true
@@ -199,7 +192,7 @@ test('MonsterAgent handles memory management', async () => {
   assert.equal(systemMessage.content, 'System message');
 });
 
-test('MonsterAgent fallback to secondary providers', async () => {
+test('ConversationAgent fallback to secondary providers', async () => {
   const failingProvider: Provider = {
     id: 'failing',
     supportsTools: true,
@@ -212,13 +205,13 @@ test('MonsterAgent fallback to secondary providers', async () => {
     { role: 'assistant', content: 'Fallback response' }
   ]);
 
-  const result = await runMonsterAgent(
+  const result = await runAgent(
     [{ role: 'user', content: 'Test fallback' }],
     {},
-    {
-      primary: [failingProvider],
-      fallback: [workingProvider]
-    }
+    [
+      { p: failingProvider, model: 'test', priority: 'primary' },
+      { p: workingProvider, model: 'test', priority: 'fallback' }
+    ]
   );
 
   // Should fall back to working provider
@@ -247,16 +240,16 @@ test('createAgentContext with custom options', () => {
   assert.ok(ctx.tools.test_tool);
 });
 
-test('MonsterAgent backwards compatibility', async () => {
+test('ConversationAgent backwards compatibility', async () => {
   // Test that legacy provider format works
   const provider = createMockProvider('legacy', [
     { role: 'assistant', content: 'Legacy response' }
   ]);
 
-  const result = await runMonsterAgent(
+  const result = await runAgent(
     [{ role: 'user', content: 'Test' }],
     {},
-    [provider] as any, // Legacy format
+    [{ p: provider, model: 'test', priority: 'primary' }],
     { maxSteps: 3 }
   );
 

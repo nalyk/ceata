@@ -1,12 +1,12 @@
-# 🚀 CEATA MONSTER GUIDE
+# CEATA Usage Guide
 
-**Your Complete Guide to MONSTER Efficiency**
+Complete guide to using CEATA
 
 ---
 
-## 🎯 **Quick Start: From Zero to MONSTER**
+## Quick Start
 
-### **1. Installation & Setup**
+### 1. Installation & Setup
 ```bash
 git clone https://github.com/nalyk/ceata.git
 cd ceata
@@ -14,9 +14,9 @@ npm install
 npm run build
 ```
 
-### **2. Basic MONSTER Usage**
+### 2. Basic Usage
 ```typescript
-import { runMonsterAgent, defineTool } from "ceata";
+import { runAgent, defineTool } from "ceata";
 
 // Define tools with full type safety
 const calculator = defineTool({
@@ -40,8 +40,8 @@ const providers = {
   fallback: [openai]             // Paid backup
 };
 
-// MONSTER execution
-const result = await runMonsterAgent(
+// Execute pipeline
+const result = await runAgent(
   [{ role: "user", content: "Calculate 15 * 8 + 42" }],
   { calculator },
   providers,
@@ -51,21 +51,21 @@ const result = await runMonsterAgent(
 
 ---
 
-## 🔄 **Migration Strategies**
+## Migration Strategies
 
-### **Strategy 1: Zero Changes (Immediate)**
+### Strategy 1: Zero Changes
 ```typescript
 // Your existing code works unchanged
 import { runAgent } from "ceata";
 
 const result = await runAgent(messages, tools, providers);
-// ✅ All features work, MONSTER optimizations applied under the hood
+// All features work, optimizations applied under the hood
 ```
 
-### **Strategy 2: Gradual Upgrade (Recommended)**
+### Strategy 2: Gradual Upgrade
 ```typescript
-// Step 1: Switch to MONSTER API
-import { runMonsterAgent } from "ceata";
+// Step 1: Switch to pipeline API
+import { runAgent } from "ceata";
 
 // Step 2: Update provider format
 const providers = {
@@ -73,18 +73,18 @@ const providers = {
   fallback: legacyProviders.filter(p => p.priority === 'fallback').map(p => p.p)
 };
 
-// Step 3: Add MONSTER options
-const result = await runMonsterAgent(messages, tools, providers, {
+// Step 3: Add pipeline options
+const result = await runAgent(messages, tools, providers, {
   enableRacing: true,
   maxHistoryLength: 50
 });
 ```
 
-### **Strategy 3: Full MONSTER (Maximum Performance)**
+### Strategy 3: Full Pipeline
 ```typescript
-import { MonsterAgent, createAgentContext } from "ceata";
+import { ConversationAgent, createAgentContext } from "ceata";
 
-const agent = new MonsterAgent();
+const agent = new ConversationAgent();
 const result = await agent.run(messages, tools, providers, {
   maxSteps: 10,
   enableRacing: true,

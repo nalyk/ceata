@@ -1,6 +1,6 @@
 /**
- * CEATA MONSTER EFFICIENCY - Executor
- * Ultra-fast execution engine with provider racing and zero-allocation streaming
+ * CEATA Executor
+ * Execution engine with provider racing and streaming
  */
 
 import { AgentContext, StepResult, updateMetrics } from "./AgentContext.js";
@@ -10,7 +10,7 @@ import { logger } from "./logger.js";
 
 export class Executor {
   /**
-   * Executes a plan step with MAXIMUM efficiency
+   * Executes a plan step efficiently
    */
   async execute(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
     const startTime = Date.now();
@@ -38,7 +38,7 @@ export class Executor {
   }
 
   /**
-   * Executes chat with provider racing for MAXIMUM speed
+   * Executes chat with provider racing for speed
    */
   private async executeChat(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
     const messages = ctx.messages;
@@ -52,7 +52,7 @@ export class Executor {
   }
 
   /**
-   * PROVIDER RACING - Promise.any() for MAXIMUM performance
+   * Provider racing - Promise.any() for performance
    */
   private async raceProviders(providers: Provider[], messages: ChatMessage[], ctx: AgentContext): Promise<StepResult> {
     const startTime = Date.now();

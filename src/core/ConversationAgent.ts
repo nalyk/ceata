@@ -1,9 +1,12 @@
 /**
- * CEATA MONSTER EFFICIENCY - MonsterAgent
- * The most efficient agentic framework in existence
+ * CEATA Pipeline Agent
+ * Conversation agent with concurrent provider execution and intelligent planning
  */
 
 import { AgentContext, createAgentContext, appendMessages, updateState, updateMetrics, AgentOptions, ProviderGroup } from "./AgentContext.js";
+
+// Re-export for external use
+export type { ProviderGroup };
 import { Planner, Plan } from "./Planner.js";
 import { Executor } from "./Executor.js";
 import { Reflector } from "./Reflector.js";
@@ -11,7 +14,7 @@ import { ChatMessage, Provider } from "./Provider.js";
 import { Tool } from "./Tool.js";
 import { logger } from "./logger.js";
 
-export interface MonsterResult {
+export interface AgentResult {
   readonly messages: ChatMessage[];
   readonly metrics: {
     readonly duration: number;
@@ -27,20 +30,20 @@ export interface MonsterResult {
   };
 }
 
-export class MonsterAgent {
+export class ConversationAgent {
   private readonly planner = new Planner();
   private readonly executor = new Executor();
   private readonly reflector = new Reflector();
 
   /**
-   * MONSTER EFFICIENCY - Run agent with MAXIMUM performance
+   * Execute conversation with pipeline architecture for optimized performance
    */
   async run(
     messages: ChatMessage[],
     tools: Record<string, Tool<any, any>>,
     providers: ProviderGroup,
     options?: Partial<AgentOptions>
-  ): Promise<MonsterResult> {
+  ): Promise<AgentResult> {
     const startTime = Date.now();
     let ctx = createAgentContext(messages, tools, providers, options);
     
@@ -51,7 +54,7 @@ export class MonsterAgent {
     let reflectionCount = 0;
     let stepCount = 0;
 
-    // Execute plan with MONSTER efficiency
+    // Execute plan with pipeline efficiency
     while (ctx.state.stepCount < ctx.options.maxSteps && !ctx.state.isComplete && plan.steps.length > 0) {
       stepCount++;
       const step = plan.steps[0];
@@ -122,63 +125,4 @@ export class MonsterAgent {
       }
     };
   }
-}
-
-/**
- * CLEAN API - Backwards compatible interface
- */
-export async function runMonsterAgent(
-  messages: ChatMessage[],
-  tools: Record<string, Tool<any, any>>,
-  providers: Provider[] | ProviderGroup,
-  options?: Partial<AgentOptions>
-): Promise<ChatMessage[]> {
-  // Convert legacy provider array to ProviderGroup
-  const providerGroup: ProviderGroup = Array.isArray(providers)
-    ? {
-        primary: providers.filter(p => p.id.includes('free') || p.id === 'google'),
-        fallback: providers.filter(p => !p.id.includes('free') && p.id !== 'google')
-      }
-    : providers;
-
-  const agent = new MonsterAgent();
-  const result = await agent.run(messages, tools, providerGroup, options);
-  
-  // Log performance metrics
-  logger.info(`🚀 MONSTER execution: ${result.metrics.duration}ms, ${result.metrics.efficiency.toFixed(2)} ops/sec, $${result.metrics.costSavings.toFixed(4)} saved`);
-  
-  return result.messages;
-}
-
-/**
- * BACKWARDS COMPATIBILITY - Legacy runAgent interface
- */
-export async function runAgent(
-  messages: ChatMessage[],
-  tools: Record<string, Tool<any, any>>,
-  providers: any[],
-  maxStepsOrOptions?: number | Partial<AgentOptions>,
-  timeoutMs?: number,
-  providerCache?: any
-): Promise<ChatMessage[]> {
-  logger.warn('🦕 Using legacy runAgent - consider upgrading to runMonsterAgent for MAXIMUM performance');
-  
-  let options: Partial<AgentOptions>;
-  
-  if (typeof maxStepsOrOptions === 'number') {
-    options = {
-      maxSteps: maxStepsOrOptions,
-      timeoutMs: timeoutMs || 30000
-    };
-  } else {
-    options = maxStepsOrOptions || {};
-  }
-
-  // Convert legacy provider format
-  const providerGroup: ProviderGroup = {
-    primary: providers.filter((p: any) => p.priority === 'primary').map((p: any) => p.p),
-    fallback: providers.filter((p: any) => p.priority === 'fallback').map((p: any) => p.p)
-  };
-
-  return await runMonsterAgent(messages, tools, providerGroup, options);
 }
