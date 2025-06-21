@@ -38,17 +38,48 @@ export class Executor {
   }
 
   /**
-   * Executes chat with provider racing for speed
+   * Executes chat with intelligent provider selection
    */
   private async executeChat(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
     const messages = ctx.messages;
     
-    if (ctx.options.enableRacing && ctx.providers.primary.length > 1) {
+    // Smart strategy: Sequential for free APIs to preserve quotas, racing for paid APIs for speed
+    if (ctx.options.providerStrategy === 'smart') {
+      return await this.smartProviderExecution(messages, ctx);
+    } else if (ctx.options.providerStrategy === 'racing' && ctx.options.enableRacing && ctx.providers.primary.length > 1) {
       return await this.raceProviders(ctx.providers.primary, messages, ctx);
     } else {
-      // Fallback to sequential execution
+      // Sequential execution
       return await this.tryProvidersSequential([...ctx.providers.primary, ...ctx.providers.fallback], messages, ctx);
     }
+  }
+
+  /**
+   * Smart provider execution: Sequential for free APIs, racing for paid when appropriate
+   */
+  private async smartProviderExecution(messages: ChatMessage[], ctx: AgentContext): Promise<StepResult> {
+    // Primary providers: Try sequentially to preserve free quotas
+    if (ctx.providers.primary.length > 0) {
+      logger.info(`🧠 Smart strategy: Trying ${ctx.providers.primary.length} primary providers sequentially`);
+      
+      for (const provider of ctx.providers.primary) {
+        try {
+          logger.info(`⚡ Trying primary provider: ${provider.id}`);
+          const result = await this.callProvider(provider, messages, ctx);
+          logger.info(`✅ Primary provider ${provider.id} succeeded`);
+          return this.processProviderResult(result, ctx, provider.id);
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          logger.warn(`❌ Primary provider ${provider.id} failed: ${errorMsg}`);
+          // Continue to next primary provider
+        }
+      }
+      
+      logger.warn('All primary providers failed, trying fallback providers');
+    }
+    
+    // Fallback providers: Try sequentially as well
+    return await this.tryProvidersSequential(ctx.providers.fallback, messages, ctx);
   }
 
   /**
@@ -108,9 +139,10 @@ export class Executor {
    */
   private async callProvider(provider: Provider, messages: ChatMessage[], ctx: AgentContext): Promise<ChatResult> {
     const tools = provider.supportsTools ? ctx.tools : undefined;
+    const model = ctx.providerModels?.[provider.id] || 'auto'; // Use configured model or fallback
     
     const chatPromise = provider.chat({
-      model: 'auto', // Let provider choose best model
+      model,
       messages,
       tools,
       timeoutMs: ctx.options.timeoutMs

@@ -29,7 +29,7 @@ Primary: OpenRouter Free Models + Google AI Studio (experimental/free)
 Fallback: Premium Models (GPT-4o-mini, etc.)
 ```
 
-**Result**: 90%+ cost reduction while maintaining production reliability.
+**Result**: Significant cost reduction while maintaining production reliability.
 
 For a deeper dive into the project's design philosophy and technical decisions, please see our [**Rationale Document**](./RATIONALE.md).
 
@@ -47,37 +47,37 @@ Efficient pipeline design
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-**Performance Improvements:**
-- 🏁 **Provider Racing**: ~50% faster with `Promise.any()`
-- ⚡ **Parallel Tools**: ~70% faster execution
-- 🧠 **Smart Memory**: 90% memory reduction
-- 🛡️ **Type Safety**: 100% elimination of `any` types
-- 🚫 **No Regex Circus**: 95% more reliable JSON parsing
+**Performance Features:**
+- Provider Racing: Faster response times with `Promise.any()`
+- Parallel Tools: Concurrent tool execution
+- Smart Memory: Efficient memory management
+- Type Safety: Full TypeScript type coverage
+- Reliable JSON: Structured JSON parsing
 
 ---
 
 ## 🚀 Features
 
-### ⚡ **MONSTER Performance**
-- 🏁 **Provider Racing** – multiple providers compete for fastest response
-- 🔄 **Parallel Tool Execution** – tools run simultaneously for maximum speed
-- 🧠 **Smart Memory Management** – automatic conversation pruning with O(1) efficiency
-- 📊 **Real-Time Metrics** – operations/sec, cost savings, efficiency tracking
-- 🛡️ **Circuit Breaker** – intelligent retry with exponential backoff
+### Performance Features
+- Provider Racing – multiple providers compete for fastest response
+- Parallel Tool Execution – tools run simultaneously
+- Smart Memory Management – automatic conversation pruning
+- Real-Time Metrics – operations/sec, cost savings, efficiency tracking
+- Circuit Breaker – intelligent retry with exponential backoff
 
-### 💰 **Cost-Optimized Intelligence**
-- 🎯 **Economic Strategy** – free models first, paid models only when critical
-- 📈 **Provider Health Monitoring** – avoid repeatedly trying failed free providers
-- 💾 **Memory Efficiency** – smart conversation pruning preserves context while controlling costs
-- 📊 **Provider Caching** – remember working providers to reduce API waste
+### Cost-Optimized Intelligence
+- Economic Strategy – free models first, paid models only when critical
+- Provider Health Monitoring – avoid repeatedly trying failed free providers
+- Memory Efficiency – smart conversation pruning preserves context while controlling costs
+- Provider Caching – remember working providers to reduce API waste
 
-### 🛠️ **Production-Ready Architecture**
-- 🧰 **First-Class Tools** – JSON-Schema-typed, automatically executable
-- 🔒 **Revolutionary JSON Strategy** – eliminates regex-based parsing vulnerabilities
-- 🌐 **Pluggable Providers** – OpenRouter, Google Gemini, OpenAI (drop-in new ones)
-- 🛡️ **Pure TypeScript, Zero Deps** – uses only built-in Node 18+ APIs
-- 🎯 **Type-Safe End-to-End** – strict generics for messages, providers, and tools
-- 🔄 **100% Backwards Compatible** – legacy API still works
+### Production-Ready Architecture
+- First-Class Tools – JSON-Schema-typed, automatically executable
+- Structured JSON Parsing – reliable JSON block extraction
+- Pluggable Providers – OpenRouter, Google Gemini, OpenAI (drop-in new ones)
+- Pure TypeScript, Zero Deps – uses only built-in Node 18+ APIs
+- Type-Safe End-to-End – strict generics for messages, providers, and tools
+- 100% Backwards Compatible – legacy API still works
 
 ---
 
@@ -94,10 +94,10 @@ node dist/examples/chatWithTools.js  # multi-step streaming demo
 node dist/examples/memoryManagementExample.js  # memory management demo
 ```
 
-### MONSTER Mode (Maximum Efficiency)
+### Pipeline Architecture Mode
 
 ```typescript
-import { runMonsterAgent, defineTool } from "./dist/index.js";
+import { runAgent, defineTool } from "./dist/index.js";
 import { createOpenRouterProvider } from "./dist/providers/openrouter.js";
 import { google } from "./dist/providers/google.js";
 import { openai } from "./dist/providers/openai.js";
@@ -114,24 +114,21 @@ const calculator = defineTool({
   execute: async ({ expression }) => eval(expression.replace(/[^0-9+\-*/().\\s]/g, ''))
 });
 
-// Provider groups for racing
-const providers = {
-  primary: [createOpenRouterProvider(), google],  // Free models race
-  fallback: [openai]                             // Paid backup
-};
+// Provider configuration with smart strategy
+const providers = [
+  { p: createOpenRouterProvider(), model: "mistralai/mistral-small-3.1-24b-instruct:free", priority: "primary" },
+  { p: google, model: "models/gemini-2.0-flash-thinking-exp", priority: "primary" },
+  { p: openai, model: "gpt-4o-mini", priority: "fallback" }
+];
 
-// MONSTER execution with metrics
-const result = await runMonsterAgent(
+// Execute with smart provider strategy
+const result = await runAgent(
   [{ role: "user", content: "Calculate 15 * 8 + 42" }],
   { calculator },
   providers,
-  { enableRacing: true, maxHistoryLength: 50 }
+  { providerStrategy: 'smart', maxHistoryLength: 50 }
 );
 
-// Access performance metrics
-console.log(`⚡ Efficiency: ${result.metrics.efficiency} ops/sec`);
-console.log(`💰 Saved: $${result.metrics.costSavings.toFixed(4)}`);
-console.log(`🔄 Provider calls: ${result.metrics.providerCalls}`);
 ```
 
 ### Hello Ceata (Legacy Compatible)
@@ -259,16 +256,16 @@ const getWeather = defineTool({
 
 ## ⚡ Advanced Usage
 
-### MONSTER Architecture Components
+### Pipeline Architecture Components
 
 ```typescript
-import { MonsterAgent, Planner, Executor, Reflector } from "./dist/index.js";
+import { ConversationAgent, Planner, Executor, Reflector } from "./dist/index.js";
 
 // Full control over the pipeline
-const agent = new MonsterAgent();
-const result = await agent.run(messages, tools, providers, {
+const agent = new ConversationAgent();
+const result = await agent.run(messages, tools, providerGroup, {
   maxSteps: 10,
-  enableRacing: true,
+  providerStrategy: 'smart',
   maxHistoryLength: 30,
   retryConfig: {
     maxRetries: 3,
@@ -278,9 +275,9 @@ const result = await agent.run(messages, tools, providers, {
 });
 
 // Access detailed debug information
-console.log(`📋 Plan strategy: ${result.debug.plan.strategy}`);
-console.log(`🔄 Steps executed: ${result.debug.steps}`);
-console.log(`🔍 Reflections: ${result.debug.reflections}`);
+console.log(`Plan strategy: ${result.debug.plan.strategy}`);
+console.log(`Steps executed: ${result.debug.steps}`);
+console.log(`Reflections: ${result.debug.reflections}`);
 ```
 
 ### Migration Strategies
@@ -289,22 +286,18 @@ console.log(`🔍 Reflections: ${result.debug.reflections}`);
 // Strategy 1: Zero Changes (Immediate)
 import { runAgent } from "./dist/index.js";
 const result = await runAgent(messages, tools, providers);
-// ✅ All features work, MONSTER optimizations applied under the hood
+// All features work, optimizations applied under the hood
 
-// Strategy 2: Gradual Upgrade (Recommended)
-import { runMonsterAgent } from "./dist/index.js";
-const providers = {
-  primary: legacyProviders.filter(p => p.priority === 'primary').map(p => p.p),
-  fallback: legacyProviders.filter(p => p.priority === 'fallback').map(p => p.p)
-};
-const result = await runMonsterAgent(messages, tools, providers, {
-  enableRacing: true
+// Strategy 2: Smart Provider Strategy
+import { runAgent } from "./dist/index.js";
+const result = await runAgent(messages, tools, providers, {
+  providerStrategy: 'smart'
 });
 
-// Strategy 3: Full MONSTER (Maximum Performance)
-import { MonsterAgent } from "./dist/index.js";
-const agent = new MonsterAgent();
-const result = await agent.run(messages, tools, providers, fullOptions);
+// Strategy 3: Full Pipeline Control
+import { ConversationAgent } from "./dist/index.js";
+const agent = new ConversationAgent();
+const result = await agent.run(messages, tools, providerGroup, fullOptions);
 ```
 
 ### Memory Management for Long Conversations
@@ -364,14 +357,18 @@ console.log(healthReport);
 
 ## 📚 API Reference
 
-### MONSTER API
+### Pipeline API
 
-#### `runMonsterAgent(messages, tools, providers, options?)`
-
-Executes with MONSTER architecture for maximum efficiency.
+#### `ConversationAgent` Class
 
 ```typescript
-interface MonsterResult {
+class ConversationAgent {
+  async run(messages, tools, providers, options?, providerModels?): Promise<AgentResult>
+}
+```
+
+```typescript
+interface AgentResult {
   messages: ChatMessage[];              // Conversation result
   metrics: {
     duration: number;                   // Total execution time (ms)
@@ -385,14 +382,6 @@ interface MonsterResult {
     steps: number;                     // Pipeline steps
     reflections: number;               // Quality corrections applied
   };
-}
-```
-
-#### `MonsterAgent` Class
-
-```typescript
-class MonsterAgent {
-  async run(messages, tools, providers, options?): Promise<MonsterResult>
 }
 ```
 
@@ -419,7 +408,8 @@ interface AgentOptions {
   providerCache?: ProviderCache;        // Reuse provider health across calls
   maxHistoryLength?: number;            // Memory management (default: 50)
   preserveSystemMessages?: boolean;     // Keep system msgs during pruning (default: true)
-  enableRacing?: boolean;               // Enable provider racing (MONSTER feature)
+  enableRacing?: boolean;               // Enable provider racing
+  providerStrategy?: 'racing' | 'sequential' | 'smart'; // Provider selection strategy
   retryConfig?: RetryConfig;            // Circuit breaker configuration
 }
 ```
@@ -462,14 +452,13 @@ interface ChatMessage {
 
 ```
 src/
-├── core/            # MONSTER Architecture + Legacy Components
-│   ├── MonsterAgent.ts        # 🔥 Pipeline orchestrator (120 LOC)
-│   ├── Planner.ts            # 🧠 Strategic planning (120 LOC)
-│   ├── Executor.ts           # ⚡ Provider racing + tools (180 LOC)
-│   ├── Reflector.ts          # 🔍 Quality assurance (140 LOC)
-│   ├── AgentContext.ts       # 📊 State management (80 LOC)
-│   ├── JsonStrategy.ts       # 🚫 Revolutionary JSON (160 LOC)
-│   ├── AgentRunner.ts        # 🔄 Legacy compatibility (enhanced)
+├── core/            # Pipeline Architecture + Legacy Components
+│   ├── ConversationAgent.ts  # Pipeline orchestrator
+│   ├── Planner.ts            # Strategic planning
+│   ├── Executor.ts           # Provider racing + tools
+│   ├── Reflector.ts          # Quality assurance
+│   ├── AgentContext.ts       # State management
+│   ├── AgentRunner.ts        # Legacy compatibility (enhanced)
 │   ├── Provider.ts           # Provider interface & types
 │   ├── Tool.ts              # Tool definition utilities
 │   ├── logger.ts            # Configurable logging
@@ -484,35 +473,36 @@ src/
 ├── examples/        # Demonstration code
 │   ├── mathAgent.ts           # Basic tool usage
 │   ├── chatWithTools.ts       # Streaming conversation
+│   ├── pipelineExample.ts     # Pipeline architecture demo
 │   └── memoryManagementExample.ts # Advanced memory features
 ├── config/          # Centralized configuration
 ├── __tests__/       # Comprehensive test suite
-│   ├── monsterAgent.test.ts   # 🧪 MONSTER architecture tests
-│   └── ...                   # Legacy test coverage
-├── MONSTER-ARCHITECTURE.md   # 📖 Complete architecture guide
-├── MONSTER-GUIDE.md         # 🎯 Usage patterns & best practices
-└── index.ts         # Public API exports (MONSTER + Legacy)
+│   ├── conversationAgent.test.ts   # Pipeline architecture tests
+│   └── ...                        # Legacy test coverage
+├── ARCHITECTURE.md   # Complete architecture guide
+├── USAGE-GUIDE.md   # Usage patterns & best practices
+└── index.ts         # Public API exports
 ```
 
-**~800 LOC of PURE EFFICIENCY** replacing the original 460 LOC god-loop
+~800 lines of code implementing clean pipeline architecture
 
 ---
 
 ## 🛡️ Security & Cost
 
-### 💰 **MONSTER Cost Optimization**
-- **🏁 Provider Racing** – free models compete for fastest response
-- **📊 Real-Time Cost Tracking** – know exactly how much you're saving
-- **🧠 Smart Memory Management** – prevent unbounded conversation growth
-- **📈 Provider Health Monitoring** – avoid wasting calls on failed providers
-- **⚡ Parallel Execution** – maximize throughput, minimize time costs
+### Cost Optimization
+- Provider Racing – free models compete for fastest response
+- Real-Time Cost Tracking – track cost savings
+- Smart Memory Management – prevent unbounded conversation growth
+- Provider Health Monitoring – avoid wasting calls on failed providers
+- Parallel Execution – maximize throughput, minimize time costs
 
-### 🔒 **Enhanced Security Features**
-- **🚫 Revolutionary JSON Strategy** – eliminates regex-based vulnerabilities
-- **🛡️ Input Validation** – tool arguments are sanitized and size-limited
-- **🔒 Safe Parsing** – structured JSON block extraction
-- **💾 No Persistent Storage** – chats stay in memory only
-- **⚡ Rate-Limiting Ready** – plug your favourite limiter in `MonsterAgent`
+### Security Features
+- Structured JSON Parsing – reliable JSON block extraction
+- Input Validation – tool arguments are sanitized and size-limited
+- Safe Parsing – no regex-based vulnerabilities
+- No Persistent Storage – chats stay in memory only
+- Rate-Limiting Ready – integrates with rate limiting systems
 
 ---
 
@@ -545,19 +535,17 @@ This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
-## 🏆 Performance Comparison
+## Architecture Comparison
 
-| Feature | Legacy | MONSTER | Improvement |
-|---------|--------|---------|-------------|
-| Provider Selection | Sequential | Racing | ~50% faster |
-| Tool Execution | Sequential | Parallel | ~70% faster |
-| Memory Usage | O(n²) | O(1) | 90% reduction |
-| Type Safety | `any` types | Full generics | 100% safe |
-| JSON Parsing | Regex circus | Clean blocks | 95% reliability |
-| Architecture | God-loop (460 LOC) | Pipeline (800 LOC) | Clean separation |
-
-**The MONSTER architecture doesn't just improve performance - it transforms how you think about agentic frameworks.**
+| Feature | Legacy | Pipeline | Improvement |
+|---------|--------|----------|-------------|
+| Provider Selection | Sequential | Racing | Faster response |
+| Tool Execution | Sequential | Parallel | Concurrent execution |
+| Memory Usage | O(n²) | O(1) | Efficient pruning |
+| Type Safety | `any` types | Full generics | Type-safe |
+| JSON Parsing | Regex-based | Structured blocks | More reliable |
+| Architecture | Single loop (460 LOC) | Pipeline (800 LOC) | Clean separation |
 
 ---
 
-Built with ❤️ by a Yoda.Digital - a _ceață_ of open-source enthusiasts who believe in **MONSTER efficiency**.
+Built with ❤️ by Yoda.Digital - a _ceață_ of open-source enthusiasts who believe in efficient, honest software.

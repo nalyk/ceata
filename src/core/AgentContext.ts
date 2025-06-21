@@ -10,6 +10,7 @@ export interface AgentContext {
   readonly messages: ChatMessage[];
   readonly tools: Record<string, Tool<any, any>>;
   readonly providers: ProviderGroup;
+  readonly providerModels?: Record<string, string>; // Map provider.id to model name
   readonly options: AgentOptions;
   readonly state: ConversationState;
 }
@@ -25,6 +26,7 @@ export interface AgentOptions {
   readonly maxHistoryLength: number;
   readonly preserveSystemMessages: boolean;
   readonly enableRacing: boolean;
+  readonly providerStrategy: 'racing' | 'sequential' | 'smart';
   readonly retryConfig: RetryConfig;
 }
 
@@ -64,7 +66,8 @@ export function createAgentContext(
   messages: ChatMessage[],
   tools: Record<string, Tool<any, any>>,
   providers: ProviderGroup,
-  options?: Partial<AgentOptions>
+  options?: Partial<AgentOptions>,
+  providerModels?: Record<string, string>
 ): AgentContext {
   const defaultOptions: AgentOptions = {
     maxSteps: 8,
@@ -72,6 +75,7 @@ export function createAgentContext(
     maxHistoryLength: 50,
     preserveSystemMessages: true,
     enableRacing: true,
+    providerStrategy: 'smart',
     retryConfig: {
       maxRetries: 3,
       baseDelayMs: 1000,
@@ -84,6 +88,7 @@ export function createAgentContext(
     messages: [...messages],
     tools,
     providers,
+    providerModels,
     options: { ...defaultOptions, ...options },
     state: {
       stepCount: 0,

@@ -104,6 +104,12 @@ export async function runAgent(
   let fallback = providers
     .filter(pc => pc.priority === "fallback")
     .map(pc => pc.p);
+  
+  // Create provider models mapping
+  const providerModels: Record<string, string> = {};
+  providers.forEach(pc => {
+    providerModels[pc.p.id] = pc.model;
+  });
 
   // If no explicit primary/fallback, use smart defaults
   if (primary.length === 0 && fallback.length === 0) {
@@ -124,7 +130,7 @@ export async function runAgent(
 
   // Execute with pipeline architecture
   const agent = new ConversationAgent();
-  const result = await agent.run(messages, tools, providerGroup, options);
+  const result = await agent.run(messages, tools, providerGroup, options, providerModels);
   
   // Log performance metrics (legacy format for compatibility)
   logger.info(`🔄 Pipeline execution: ${result.metrics.duration}ms, ${result.metrics.efficiency.toFixed(2)} ops/sec, $${result.metrics.costSavings.toFixed(4)} saved`);

@@ -42,10 +42,11 @@ export class ConversationAgent {
     messages: ChatMessage[],
     tools: Record<string, Tool<any, any>>,
     providers: ProviderGroup,
-    options?: Partial<AgentOptions>
+    options?: Partial<AgentOptions>,
+    providerModels?: Record<string, string>
   ): Promise<AgentResult> {
     const startTime = Date.now();
-    let ctx = createAgentContext(messages, tools, providers, options);
+    let ctx = createAgentContext(messages, tools, providers, options, providerModels);
     
     // Create execution plan
     let plan = this.planner.plan(ctx);

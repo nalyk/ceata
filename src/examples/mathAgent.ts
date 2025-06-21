@@ -71,14 +71,14 @@ const divideTool = defineTool({
   },
 });
 
-// Configure providers with fallback logic
-// Models can be overridden via environment variables or use defaults from config
+// Configure providers with intelligent fallback logic
+// SMART STRATEGY: Sequential free providers first (preserves quotas), then paid fallback
 const providers: ProviderConfig[] = [
-  // Primary providers (free models)
+  // Primary providers (FREE/CREDITED - tried sequentially to preserve quotas)
   { p: openRouter, model: "mistralai/mistral-small-3.1-24b-instruct:free", priority: "primary" },
   { p: google, model: config.providers.google.defaultModel, priority: "primary" },
   
-  // Fallback provider (paid model)
+  // Fallback provider (PAID - only if free options exhausted)
   { p: openai, model: config.providers.openai.defaultModel, priority: "fallback" },
 ];
 
@@ -91,7 +91,9 @@ const tools = {
 (async () => {
   console.log("🚀 Starting Math Agent Example");
   console.log("📋 Available tools: add, multiply, divide");
-  console.log("🔄 Provider fallback: OpenRouter/Google → OpenAI");
+  console.log("🧠 Smart Strategy: Try free providers sequentially (preserves quotas)");
+  console.log("💰 OpenRouter → Google → OpenAI (only if needed)");
+  console.log("🛡️  Cost optimization: Maximum free usage, minimal paid requests");
   console.log("=".repeat(50));
 
   try {
@@ -109,7 +111,10 @@ const tools = {
     console.log("💭 User question:", messages[1].content);
     console.log("\n🤖 Agent thinking...\n");
 
-    const result = await runAgent(messages, tools, providers, 10);
+    const result = await runAgent(messages, tools, providers, {
+      maxSteps: 10,
+      providerStrategy: 'smart'
+    });
 
     console.log("\n" + "=".repeat(50));
     console.log("📝 Final conversation:");
