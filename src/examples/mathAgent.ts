@@ -77,9 +77,9 @@ const divideTool = defineTool({
 // SMART STRATEGY: Sequential free providers first (preserves quotas), then paid fallback
 const providers: ProviderConfig[] = [
   // Primary providers (FREE - Optimized for universal tool calling)
-  { p: googleOpenAI, model: config.providers.google.defaultModel, priority: "primary" },
   { p: openRouter, model: "qwen/qwen3-235b-a22b:free", priority: "primary" },
   { p: openRouter, model: "meta-llama/llama-3.1-nemotron-ultra-253b-v1:free", priority: "primary" },
+  { p: googleOpenAI, model: config.providers.google.defaultModel, priority: "primary" },
   
   // Fallback provider (PAID - only if free options exhausted)
   { p: openai, model: config.providers.openai.defaultModel, priority: "fallback" },
