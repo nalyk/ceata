@@ -1,7 +1,7 @@
 import { defineTool } from "../core/Tool.js";
 import { runAgent, ProviderConfig } from "../core/AgentRunner.js";
 import { createOpenRouterProvider } from "../providers/openrouter.js";
-import { google } from "../providers/google.js";
+import { googleOpenAI } from "../providers/googleOpenAI.js";
 import { openai } from "../providers/openai.js";
 import { config } from "../config/index.js";
 
@@ -74,9 +74,10 @@ const divideTool = defineTool({
 // Configure providers with intelligent fallback logic
 // SMART STRATEGY: Sequential free providers first (preserves quotas), then paid fallback
 const providers: ProviderConfig[] = [
-  // Primary providers (FREE/CREDITED - tried sequentially to preserve quotas)
-  { p: openRouter, model: "mistralai/mistral-small-3.1-24b-instruct:free", priority: "primary" },
-  { p: google, model: config.providers.google.defaultModel, priority: "primary" },
+  // Primary providers (FREE - Optimized for universal tool calling)
+  { p: googleOpenAI, model: config.providers.google.defaultModel, priority: "primary" },
+  { p: openRouter, model: "qwen/qwen3-235b-a22b:free", priority: "primary" },
+  { p: openRouter, model: "meta-llama/llama-3.1-nemotron-ultra-253b-v1:free", priority: "primary" },
   
   // Fallback provider (PAID - only if free options exhausted)
   { p: openai, model: config.providers.openai.defaultModel, priority: "fallback" },
@@ -89,18 +90,19 @@ const tools = {
 };
 
 (async () => {
-  console.log("🚀 Starting Math Agent Example");
+  console.log("🚀 Starting Math Agent Example - UNIVERSAL TOOL CALLING");
   console.log("📋 Available tools: add, multiply, divide");
   console.log("🧠 Smart Strategy: Try free providers sequentially (preserves quotas)");
-  console.log("💰 OpenRouter → Google → OpenAI (only if needed)");
-  console.log("🛡️  Cost optimization: Maximum free usage, minimal paid requests");
+  console.log("💰 Google OpenAI → Qwen3-235B → Nemotron → OpenAI (only if needed)");
+  console.log("🛡️  Universal tool calling: All models support function calling");
+  console.log("🔧 Enhanced multi-step task detection");
   console.log("=".repeat(50));
 
   try {
     const messages = [
       {
         role: "system" as const,
-        content: "You are a helpful math assistant. Use the available tools to solve mathematical problems step by step. Always show your work and explain your reasoning.",
+        content: "You are a helpful math assistant. You MUST use the available tools (add, multiply, divide) to perform ALL calculations. Never do calculations manually - always use the appropriate tool. For multi-step problems, complete each step sequentially and show your work. Explain your reasoning between steps.",
       },
       {
         role: "user" as const,

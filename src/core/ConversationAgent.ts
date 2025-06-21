@@ -65,6 +65,11 @@ export class ConversationAgent {
       // Execute step
       const stepResult = await this.executor.execute(step, ctx);
       
+      // Debug: Log which provider was used
+      if (stepResult.providerUsed) {
+        console.log(`🔧 Step ${stepCount} executed by: ${stepResult.providerUsed.id} (${stepResult.providerUsed.model || 'default'})`);
+      }
+      
       // Update context with results
       if (stepResult.delta.length > 0) {
         ctx = appendMessages(ctx, stepResult.delta);

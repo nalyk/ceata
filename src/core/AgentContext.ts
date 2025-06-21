@@ -57,6 +57,7 @@ export interface StepResult {
   readonly isComplete: boolean;
   readonly metrics: Partial<PerformanceMetrics>;
   readonly error?: Error;
+  readonly providerUsed?: { id: string; model?: string };
 }
 
 /**

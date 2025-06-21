@@ -47,7 +47,7 @@ export class Planner {
 
   /**
    * Analyzes message content to predict tool usage
-   * This is a lightweight heuristic - no LLM calls needed
+   * Enhanced with multi-step task detection
    */
   private analyzeToolNeed(content: string, tools: Record<string, any>): string[] {
     const toolNames = Object.keys(tools);
@@ -67,7 +67,7 @@ export class Planner {
       }
     }
     
-    // Mathematical operation detection
+    // Enhanced mathematical operation detection with multi-step support
     if (/\b(add|sum|plus|calculate|compute|multiply|divide|subtract)\b/.test(lowerContent) ||
         /[\d\s+\-*/()=]+/.test(content)) {
       const mathTools = toolNames.filter(name => 
@@ -76,7 +76,33 @@ export class Planner {
       potentialTools.push(...mathTools);
     }
     
+    // Detect multi-step mathematical tasks
+    if (this.detectMultiStepMath(lowerContent)) {
+      const mathTools = toolNames.filter(name => 
+        /^(add|subtract|multiply|divide|calculate|math)/.test(name.toLowerCase())
+      );
+      potentialTools.push(...mathTools);
+    }
+    
     return [...new Set(potentialTools)]; // Deduplicate
+  }
+
+  /**
+   * Detects multi-step mathematical operations
+   */
+  private detectMultiStepMath(content: string): boolean {
+    // Look for sequence indicators
+    const sequenceIndicators = [
+      /then.*?(divide|multiply|add|subtract)/,
+      /after.*?(divide|multiply|add|subtract)/,
+      /next.*?(divide|multiply|add|subtract)/,
+      /and then.*?(divide|multiply|add|subtract)/,
+      /area.*?(divide|multiply)/, // area calculation followed by operation
+      /calculate.*?then/,
+      /\bthen\b.*?\b(divide|multiply|add|subtract)\b/
+    ];
+    
+    return sequenceIndicators.some(pattern => pattern.test(content));
   }
 
   private hasDescriptionKeywords(content: string, description: string): boolean {
@@ -126,7 +152,7 @@ export class Planner {
     return {
       steps,
       estimatedCost: steps.length,
-      strategy: expectedTools.length > 1 ? 'parallel_tools' : 'iterative'
+      strategy: expectedTools.length > 1 ? 'iterative' : 'iterative' // Force iterative for better multi-step handling
     };
   }
 
@@ -162,10 +188,11 @@ export class Planner {
       };
     }
 
-    // Check if the last message has tool calls that need execution
+    // Check if we need to handle tool calls or process tool results
     const lastMessage = ctx.messages[ctx.messages.length - 1];
+    
+    // Case 1: Last message has tool calls that need execution
     if (lastMessage?.tool_calls?.length && !stepResult.isComplete) {
-      // Add tool execution step followed by chat to process results
       return {
         steps: [
           { type: 'tool_execution', priority: 'critical' },
@@ -173,6 +200,15 @@ export class Planner {
         ],
         estimatedCost: 2,
         strategy: 'tool_then_chat'
+      };
+    }
+    
+    // Case 2: Last message is a tool result, need chat to process it
+    if (lastMessage?.role === 'tool' && !stepResult.isComplete) {
+      return {
+        steps: [{ type: 'chat', priority: 'normal' }],
+        estimatedCost: 1,
+        strategy: 'direct'
       };
     }
 
