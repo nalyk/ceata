@@ -259,9 +259,10 @@ const getWeather = defineTool({
 ### Pipeline Architecture Components
 
 ```typescript
-import { ConversationAgent, Planner, Executor, Reflector } from "./dist/index.js";
+import { ConversationAgent, Planner, Executor, Reflector, logger } from "./dist/index.js";
 
 // Full control over the pipeline
+logger.setLevel('debug');
 const agent = new ConversationAgent();
 const result = await agent.run(messages, tools, providerGroup, {
   maxSteps: 10,
@@ -385,6 +386,7 @@ interface AgentResult {
     plan: Plan;                        // Execution strategy
     steps: number;                     // Pipeline steps
     reflections: number;               // Quality corrections applied
+    providerHistory: { id: string; model?: string }[]; // Providers used
   };
 }
 ```
