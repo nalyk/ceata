@@ -278,6 +278,10 @@ const result = await agent.run(messages, tools, providerGroup, {
 console.log(`Plan strategy: ${result.debug.plan.strategy}`);
 console.log(`Steps executed: ${result.debug.steps}`);
 console.log(`Reflections: ${result.debug.reflections}`);
+// See which provider responded
+console.log(
+  `Provider used: ${result.debug.providerHistory[0].id} (${result.debug.providerHistory[0].model})`
+);
 ```
 
 ### Migration Strategies

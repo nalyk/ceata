@@ -167,7 +167,11 @@ export class Executor {
   /**
    * Processes provider result into standardized format
    */
-  private processProviderResult(result: ChatResult, ctx: AgentContext, providerId: string): StepResult {
+  private processProviderResult(
+    result: ChatResult,
+    ctx: AgentContext,
+    providerId: string
+  ): StepResult {
     const assistantMessage = result.messages[result.messages.length - 1];
     
     if (!assistantMessage) {
@@ -186,7 +190,11 @@ export class Executor {
     return {
       delta: [assistantMessage],
       isComplete: !hasPendingToolCalls && result.finishReason === 'stop',
-      metrics
+      metrics,
+      providerUsed: {
+        id: providerId,
+        model: ctx.providerModels?.[providerId]
+      }
     };
   }
 

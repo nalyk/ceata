@@ -27,6 +27,7 @@ export interface AgentResult {
     readonly plan: Plan;
     readonly steps: number;
     readonly reflections: number;
+    readonly providerHistory: { id: string; model?: string }[];
   };
 }
 
@@ -51,9 +52,10 @@ export class ConversationAgent {
     // Create execution plan
     let plan = this.planner.plan(ctx);
     logger.debug(`🎯 Plan created: ${plan.steps.length} steps, strategy: ${plan.strategy}`);
-    
+
     let reflectionCount = 0;
     let stepCount = 0;
+    const providerHistory: { id: string; model?: string }[] = [];
 
     // Execute plan with pipeline efficiency
     while (ctx.state.stepCount < ctx.options.maxSteps && !ctx.state.isComplete && plan.steps.length > 0) {
@@ -67,7 +69,11 @@ export class ConversationAgent {
       
       // Debug: Log which provider was used
       if (stepResult.providerUsed) {
-        console.log(`🔧 Step ${stepCount} executed by: ${stepResult.providerUsed.id} (${stepResult.providerUsed.model || 'default'})`);
+        logger.debug(
+          `🔧 Step ${stepCount} executed by: ${stepResult.providerUsed.id}` +
+            (stepResult.providerUsed.model ? ` (${stepResult.providerUsed.model})` : '')
+        );
+        providerHistory.push(stepResult.providerUsed);
       }
       
       // Update context with results
@@ -127,7 +133,8 @@ export class ConversationAgent {
       debug: {
         plan,
         steps: stepCount,
-        reflections: reflectionCount
+        reflections: reflectionCount,
+        providerHistory
       }
     };
   }
