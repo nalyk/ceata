@@ -2,13 +2,20 @@ import { defineTool } from "../core/Tool.js";
 import { ProviderConfig } from "../core/AgentRunner.js";
 import { ConversationAgent } from "../core/ConversationAgent.js";
 import { logger } from "../core/logger.js";
-import { createOpenRouterProvider } from "../providers/openrouter.js";
+import { createVanillaOpenRouterProvider } from "../providers/openrouterVanilla.js";
 import { googleOpenAI } from "../providers/googleOpenAI.js";
 import { openai } from "../providers/openai.js";
 import { config } from "../config/index.js";
 
-// Create an OpenRouter provider with custom headers
-const openRouter = createOpenRouterProvider(undefined, undefined, {
+// Create VANILLA OpenRouter providers with custom headers for FREE models
+const vanillaOpenRouter1 = createVanillaOpenRouterProvider(undefined, undefined, {
+  headers: {
+    "HTTP-Referer": "https://example.com",
+    "X-Title": "Ceata Math Agent",
+  },
+});
+
+const vanillaOpenRouter2 = createVanillaOpenRouterProvider(undefined, undefined, {
   headers: {
     "HTTP-Referer": "https://example.com",
     "X-Title": "Ceata Math Agent",
@@ -76,9 +83,9 @@ const divideTool = defineTool({
 // Configure providers with intelligent fallback logic
 // SMART STRATEGY: Sequential free providers first (preserves quotas), then paid fallback
 const providers: ProviderConfig[] = [
-  // Primary providers (FREE - Optimized for universal tool calling)
-  { p: openRouter, model: "qwen/qwen3-235b-a22b:free", priority: "primary" },
-  { p: openRouter, model: "meta-llama/llama-3.1-nemotron-ultra-253b-v1:free", priority: "primary" },
+  // Primary providers (FREE - VANILLA tool calling via prompt engineering)
+  { p: vanillaOpenRouter1, model: "mistralai/mistral-small-3.2-24b-instruct:free", priority: "primary" },
+  { p: vanillaOpenRouter2, model: "deepseek/deepseek-r1-0528-qwen3-8b:free", priority: "primary" },
   { p: googleOpenAI, model: config.providers.google.defaultModel, priority: "primary" },
   
   // Fallback provider (PAID - only if free options exhausted)
@@ -95,19 +102,19 @@ const tools = {
 logger.setLevel('debug');
 
 (async () => {
-  console.log("🚀 Starting Math Agent Example - UNIVERSAL TOOL CALLING");
+  console.log("🚀 Starting Math Agent Example - VANILLA TOOL CALLING");
   console.log("📋 Available tools: add, multiply, divide");
-  console.log("🧠 Smart Strategy: Try free providers sequentially (preserves quotas)");
-  console.log("💰 Google OpenAI → Qwen3-235B → Nemotron → OpenAI (only if needed)");
-  console.log("🛡️  Universal tool calling: All models support function calling");
-  console.log("🔧 Enhanced multi-step task detection");
+  console.log("🧠 VANILLA Strategy: Prompt engineering + text parsing for FREE models");
+  console.log("💰 Mistral-Small-3.2:free → DeepSeek-R1:free → Google OpenAI → OpenAI (only if needed)");
+  console.log("🛡️  VANILLA tool calling: Works with ANY model, even free ones!");
+  console.log("🔧 Enhanced multi-step task detection + Manual tool parsing");
   console.log("=".repeat(50));
 
   try {
     const messages = [
       {
         role: "system" as const,
-        content: "You are a helpful math assistant. You MUST use the available tools (add, multiply, divide) to perform ALL calculations. Never do calculations manually - always use the appropriate tool. For multi-step problems, complete each step sequentially and show your work. Explain your reasoning between steps.",
+        content: "You are a helpful math assistant. You MUST use the available tools to perform ALL calculations. Never calculate manually. Use this format: TOOL_CALL: {\"name\": \"multiply\", \"arguments\": {\"a\": 15, \"b\": 8}}. For multi-step problems, make one tool call at a time, wait for results, then continue.",
       },
       {
         role: "user" as const,

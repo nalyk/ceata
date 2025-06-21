@@ -254,6 +254,10 @@ export class Executor {
       isComplete: false, // Need another chat turn to process tool results
       metrics: {
         toolExecutions: totalExecutions
+      },
+      providerUsed: {
+        id: 'tool-executor',
+        model: 'local'
       }
     };
   }
