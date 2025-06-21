@@ -548,4 +548,4 @@ This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
-Built with ❤️ by Yoda.Digital - a _ceață_ of open-source enthusiasts who believe in efficient, honest software.
+Built with ❤️ by Yoda.Digital - a _ceată_ of open-source enthusiasts who believe in efficient, honest software.
