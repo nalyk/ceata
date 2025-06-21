@@ -243,6 +243,7 @@ if (result.debug) {
   console.log(`📋 Execution plan:`, result.debug.plan);
   console.log(`🔄 Steps executed: ${result.debug.steps}`);
   console.log(`🔍 Reflections: ${result.debug.reflections}`);
+  console.log(`🔧 Providers used:`, result.debug.providerHistory);
 }
 ```
 

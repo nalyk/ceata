@@ -1,5 +1,7 @@
 import { defineTool } from "../core/Tool.js";
-import { runAgent, ProviderConfig } from "../core/AgentRunner.js";
+import { ProviderConfig } from "../core/AgentRunner.js";
+import { ConversationAgent } from "../core/ConversationAgent.js";
+import { logger } from "../core/logger.js";
 import { createOpenRouterProvider } from "../providers/openrouter.js";
 import { googleOpenAI } from "../providers/googleOpenAI.js";
 import { openai } from "../providers/openai.js";
@@ -89,6 +91,9 @@ const tools = {
   divide: divideTool,
 };
 
+// Enable debug output
+logger.setLevel('debug');
+
 (async () => {
   console.log("🚀 Starting Math Agent Example - UNIVERSAL TOOL CALLING");
   console.log("📋 Available tools: add, multiply, divide");
@@ -113,19 +118,41 @@ const tools = {
     console.log("💭 User question:", messages[1].content);
     console.log("\n🤖 Agent thinking...\n");
 
-    const result = await runAgent(messages, tools, providers, {
-      maxSteps: 10,
-      providerStrategy: 'smart'
+    // Map legacy ProviderConfig[] to ConversationAgent inputs
+    const providerGroup = {
+      primary: providers.filter(p => p.priority === 'primary').map(p => p.p),
+      fallback: providers.filter(p => p.priority === 'fallback').map(p => p.p)
+    };
+    const providerModels: Record<string, string> = {};
+    providers.forEach(pc => {
+      providerModels[pc.p.id] = pc.model;
     });
+
+    const agent = new ConversationAgent();
+    const result = await agent.run(
+      messages,
+      tools,
+      providerGroup,
+      { maxSteps: 10, providerStrategy: 'smart' },
+      providerModels
+    );
 
     console.log("\n" + "=".repeat(50));
     console.log("📝 Final conversation:");
-    result.forEach((msg, i) => {
-      const emoji = msg.role === "user" ? "👤" : 
-                   msg.role === "assistant" ? "🤖" : 
+    result.messages.forEach((msg, i) => {
+      const emoji = msg.role === "user" ? "👤" :
+                   msg.role === "assistant" ? "🤖" :
                    msg.role === "tool" ? "🔧" : "⚙️";
       console.log(`${emoji} ${msg.role}: ${msg.content}`);
     });
+
+    // Show which providers were used
+    if (result.debug) {
+      console.log("\n🔧 Provider history:");
+      result.debug.providerHistory.forEach((p, i) => {
+        console.log(`Step ${i + 1}: ${p.id}${p.model ? ` (${p.model})` : ''}`);
+      });
+    }
 
   } catch (error) {
     console.error("❌ Error running math agent:", error);

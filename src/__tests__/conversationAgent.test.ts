@@ -124,6 +124,7 @@ test('ConversationAgent with full metrics', async () => {
   assert.ok(result.debug.plan);
   assert.equal(typeof result.debug.steps, 'number');
   assert.equal(typeof result.debug.reflections, 'number');
+  assert.ok(Array.isArray(result.debug.providerHistory));
 });
 
 test('ConversationAgent handles provider racing', async () => {
