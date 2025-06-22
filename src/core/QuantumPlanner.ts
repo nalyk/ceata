@@ -576,43 +576,88 @@ Focus on understanding what the user REALLY wants to achieve, not just the liter
     ctx: AgentContext
   ): Promise<QuantumStep[]> {
     const steps: QuantumStep[] = [];
+    const primaryIntent = intent.primary.toLowerCase();
     
-    // Step 1: Initial analysis/planning
-    steps.push({
-      id: 'seq_analysis',
-      type: 'chat',
-      intent: 'Analyze task and create execution plan',
-      priority: 'normal',
-      dependencies: [],
-      alternatives: ['direct_execution']
-    });
-    
-    // Step 2: Primary tool execution
-    if (strategy.expectedTools.length > 0) {
+    // ENHANCED SEQUENTIAL LOGIC: Parse "then" operations
+    if (/.*then.*/.test(primaryIntent)) {
+      // Split by "then" to identify sequential operations
+      const parts = primaryIntent.split(/\s*,?\s*then\s*/);
+      
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i].trim();
+        const isFirst = i === 0;
+        const isLast = i === parts.length - 1;
+        
+        // Determine appropriate tools for this part
+        const stepTools = this.identifyToolsForStep(part, strategy.expectedTools);
+        
+        steps.push({
+          id: `seq_step_${i + 1}`,
+          type: stepTools.length > 0 ? 'tool_execution' : 'chat',
+          intent: part,
+          expectedTools: stepTools,
+          priority: 'critical',
+          dependencies: isFirst ? [] : [`seq_step_${i}`],
+          alternatives: ['manual_execution']
+        });
+      }
+    } else {
+      // Fallback to original logic for non-"then" scenarios
       steps.push({
-        id: 'seq_tool_execution',
-        type: 'tool_execution',
-        intent: 'Execute primary tools in sequence',
-        expectedTools: strategy.expectedTools,
-        priority: 'critical',
-        dependencies: ['seq_analysis'],
-        alternatives: ['manual_calculation']
-      });
-    }
-    
-    // Step 3: Result processing and continuation
-    if (intent.secondary.length > 0) {
-      steps.push({
-        id: 'seq_continuation',
+        id: 'seq_analysis',
         type: 'chat',
-        intent: 'Process results and continue with secondary goals',
+        intent: 'Analyze task and create execution plan',
         priority: 'normal',
-        dependencies: ['seq_tool_execution'],
-        alternatives: ['completion']
+        dependencies: [],
+        alternatives: ['direct_execution']
       });
+      
+      if (strategy.expectedTools.length > 0) {
+        steps.push({
+          id: 'seq_tool_execution',
+          type: 'tool_execution',
+          intent: 'Execute primary tools in sequence',
+          expectedTools: strategy.expectedTools,
+          priority: 'critical',
+          dependencies: ['seq_analysis'],
+          alternatives: ['manual_calculation']
+        });
+      }
+      
+      if (intent.secondary.length > 0) {
+        steps.push({
+          id: 'seq_continuation',
+          type: 'chat',
+          intent: 'Process results and continue with secondary goals',
+          priority: 'normal',
+          dependencies: ['seq_tool_execution'],
+          alternatives: ['completion']
+        });
+      }
     }
     
     return steps;
+  }
+
+  private identifyToolsForStep(stepText: string, availableTools: string[]): string[] {
+    const stepLower = stepText.toLowerCase();
+    const relevantTools: string[] = [];
+    
+    // Match operations to tools
+    if (/multiply|area|times|\*|×/.test(stepLower)) {
+      relevantTools.push(...availableTools.filter(t => t === 'multiply'));
+    }
+    if (/divide|÷|\//.test(stepLower)) {
+      relevantTools.push(...availableTools.filter(t => t === 'divide'));
+    }
+    if (/add|\+|plus|sum/.test(stepLower)) {
+      relevantTools.push(...availableTools.filter(t => t === 'add'));
+    }
+    if (/subtract|-|minus/.test(stepLower)) {
+      relevantTools.push(...availableTools.filter(t => t === 'subtract'));
+    }
+    
+    return [...new Set(relevantTools)];
   }
 
   private async createHierarchicalSteps(

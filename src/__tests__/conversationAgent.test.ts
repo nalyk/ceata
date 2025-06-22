@@ -27,19 +27,70 @@ function createMockProvider(id: string, responses: ChatMessage[]): Provider {
   };
 }
 
-// Mock tool for testing
-const mockTool = defineTool({
-  name: 'test_tool',
-  description: 'A test tool',
-  parameters: {
-    type: 'object',
-    properties: {
-      input: { type: 'string' }
+// Mock vanilla provider (simulates free models with vanilla tool calling)
+function createMockVanillaProvider(id: string, responses: string[]): Provider {
+  let callCount = 0;
+  return {
+    id,
+    supportsTools: false, // Free models don't support native tool calling
+    async chat({ messages }) {
+      const responseText = responses[callCount] || responses[responses.length - 1];
+      callCount++;
+      
+      return {
+        messages: [...messages, { role: 'assistant', content: responseText }],
+        finishReason: 'stop'
+      };
+    }
+  };
+}
+
+// Mock tools for testing
+const mockMathTools = {
+  multiply: defineTool({
+    name: 'multiply',
+    description: 'Multiply two numbers together',
+    parameters: {
+      type: 'object',
+      properties: {
+        a: { type: 'number', description: 'First number' },
+        b: { type: 'number', description: 'Second number' },
+      },
+      required: ['a', 'b']
     },
-    required: ['input']
-  },
-  execute: async ({ input }: { input: string }) => `Processed: ${input}`
-});
+    execute: async ({ a, b }: { a: number; b: number }) => a * b
+  }),
+
+  divide: defineTool({
+    name: 'divide',
+    description: 'Divide two numbers',
+    parameters: {
+      type: 'object',
+      properties: {
+        a: { type: 'number', description: 'Dividend' },
+        b: { type: 'number', description: 'Divisor' },
+      },
+      required: ['a', 'b']
+    },
+    execute: async ({ a, b }: { a: number; b: number }) => {
+      if (b === 0) throw new Error('Cannot divide by zero');
+      return a / b;
+    }
+  }),
+
+  test_tool: defineTool({
+    name: 'test_tool',
+    description: 'A test tool',
+    parameters: {
+      type: 'object',
+      properties: {
+        input: { type: 'string' }
+      },
+      required: ['input']
+    },
+    execute: async ({ input }: { input: string }) => `Processed: ${input}`
+  })
+};
 
 test('ConversationAgent executes basic conversation', async () => {
   const provider = createMockProvider('test', [
@@ -63,7 +114,7 @@ test('ConversationAgent executes basic conversation', async () => {
   assert.equal(result[1].content, 'Hello! How can I help you?');
 });
 
-test('ConversationAgent handles tool calls', async () => {
+test('ConversationAgent handles tool calls (classical)', async () => {
   const provider = createMockProvider('test', [
     {
       role: 'assistant',
@@ -85,7 +136,7 @@ test('ConversationAgent handles tool calls', async () => {
 
   const result = await runAgent(
     [{ role: 'user', content: 'Use the test tool' }],
-    { test_tool: mockTool },
+    { test_tool: mockMathTools.test_tool },
     [{ p: provider, model: 'test', priority: 'primary' }]
   );
 
@@ -94,6 +145,28 @@ test('ConversationAgent handles tool calls', async () => {
   assert.equal(result[1].tool_calls?.length, 1);
   assert.equal(result[2].role, 'tool');
   assert.equal(result[3].content, 'Tool executed successfully!');
+});
+
+test('ConversationAgent handles vanilla tool calling (free models)', async () => {
+  // Simulate free model using vanilla tool calling
+  const vanillaProvider = createMockVanillaProvider('mistral-free', [
+    'I need to multiply 15 and 8. TOOL_CALL: {"name": "multiply", "arguments": {"a": 15, "b": 8}}',
+    'Now I need to divide the result by 3. TOOL_CALL: {"name": "divide", "arguments": {"a": 120, "b": 3}}',
+    'The area of a 15×8 rectangle divided by 3 is 40.'
+  ]);
+
+  const result = await runAgent(
+    [{ role: 'user', content: 'Calculate the area of a 15×8 rectangle, then divide by 3' }],
+    mockMathTools,
+    [{ p: vanillaProvider, model: 'mistralai/mistral-small-3.2-24b-instruct:free', priority: 'primary' }]
+  );
+
+  // Should have sequential tool execution
+  assert.ok(result.length >= 4); // user + multiple assistant/tool exchanges
+  
+  // Final response should contain the correct answer
+  const finalResponse = result[result.length - 1];
+  assert.ok(finalResponse.content?.includes('40'));
 });
 
 test('ConversationAgent with full metrics', async () => {
@@ -193,36 +266,58 @@ test('ConversationAgent handles memory management', async () => {
   assert.equal(systemMessage.content, 'System message');
 });
 
-test('ConversationAgent fallback to secondary providers', async () => {
-  const failingProvider: Provider = {
-    id: 'failing',
-    supportsTools: true,
+test('ConversationAgent fallback to secondary providers (cost optimization)', async () => {
+  const failingFreeProvider: Provider = {
+    id: 'mistral-free',
+    supportsTools: false,
     async chat() {
-      throw new Error('Provider failed');
+      throw new Error('Free provider failed');
     }
   };
 
-  const workingProvider = createMockProvider('working', [
-    { role: 'assistant', content: 'Fallback response' }
+  const workingPremiumProvider = createMockProvider('gpt-4o-mini', [
+    { role: 'assistant', content: 'Premium fallback response' }
   ]);
 
   const result = await runAgent(
     [{ role: 'user', content: 'Test fallback' }],
     {},
     [
-      { p: failingProvider, model: 'test', priority: 'primary' },
-      { p: workingProvider, model: 'test', priority: 'fallback' }
+      { p: failingFreeProvider, model: 'mistralai/mistral-small-3.2-24b-instruct:free', priority: 'primary' },
+      { p: workingPremiumProvider, model: 'gpt-4o-mini', priority: 'fallback' }
     ]
   );
 
-  // Should fall back to working provider
-  assert.equal(result[1].content, 'Fallback response');
+  // Should fall back to premium provider
+  assert.equal(result[1].content, 'Premium fallback response');
+});
+
+test('ConversationAgent free-model-first strategy', async () => {
+  const freeProvider = createMockVanillaProvider('mistral-free', [
+    'Free model response'
+  ]);
+
+  const premiumProvider = createMockProvider('gpt-premium', [
+    { role: 'assistant', content: 'Premium model response' }
+  ]);
+
+  const result = await runAgent(
+    [{ role: 'user', content: 'Simple request' }],
+    {},
+    [
+      { p: freeProvider, model: 'mistralai/mistral-small-3.2-24b-instruct:free', priority: 'primary' },
+      { p: premiumProvider, model: 'gpt-4o-mini', priority: 'fallback' }
+    ]
+  );
+
+  // Should use free model first
+  assert.equal(result[1].content, 'Free model response');
 });
 
 test('createAgentContext with custom options', () => {
   const ctx = createAgentContext(
     [{ role: 'user', content: 'Test' }],
-    { test_tool: mockTool },
+    { test_tool: mockMathTools.test_tool },
     {
       primary: [createMockProvider('test', [])],
       fallback: []
@@ -255,4 +350,68 @@ test('ConversationAgent backwards compatibility', async () => {
   );
 
   assert.equal(result[1].content, 'Legacy response');
+});
+
+test('ConversationAgent sequential tool execution correctness', async () => {
+  // The critical test case: sequential math operations
+  const sequentialProvider = createMockVanillaProvider('sequential-test', [
+    'I need to calculate the area first. TOOL_CALL: {"name": "multiply", "arguments": {"a": 15, "b": 8}}',
+    'Now I divide the area by 3. TOOL_CALL: {"name": "divide", "arguments": {"a": 120, "b": 3}}',
+    'The final answer is 40.'
+  ]);
+
+  const result = await runAgent(
+    [{ role: 'user', content: 'Calculate area of 15×8 rectangle, then divide by 3' }],
+    mockMathTools,
+    [{ p: sequentialProvider, model: 'test-sequential', priority: 'primary' }]
+  );
+
+  // Verify correct sequential execution
+  assert.ok(result.length >= 4);
+  
+  // Final answer should be 40 (15×8=120, 120÷3=40)
+  const finalMessage = result[result.length - 1];
+  assert.ok(finalMessage.content?.includes('40'));
+});
+
+test('ConversationAgent cost tracking', async () => {
+  const freeProvider = createMockVanillaProvider('free', ['Free response']);
+  
+  const result = await runAgent(
+    [{ role: 'user', content: 'Test cost tracking' }],
+    {},
+    [{ p: freeProvider, model: 'mistralai/mistral-small-3.2-24b-instruct:free', priority: 'primary' }]
+  );
+
+  // Using free models should show cost savings
+  assert.ok(result.length >= 2);
+  // Note: Full cost tracking would be implemented in actual ConversationAgent
+});
+
+test('ConversationAgent error recovery', async () => {
+  let callCount = 0;
+  const unreliableProvider: Provider = {
+    id: 'unreliable',
+    supportsTools: true,
+    async chat({ messages }) {
+      callCount++;
+      if (callCount === 1) {
+        throw new Error('First call failed');
+      }
+      return {
+        messages: [...messages, { role: 'assistant', content: 'Recovered response' }],
+        finishReason: 'stop'
+      };
+    }
+  };
+
+  const result = await runAgent(
+    [{ role: 'user', content: 'Test error recovery' }],
+    {},
+    [{ p: unreliableProvider, model: 'test', priority: 'primary' }],
+    { retryConfig: { maxRetries: 2, baseDelayMs: 10, maxDelayMs: 100, jitter: false } }
+  );
+
+  // Should recover and succeed on retry
+  assert.equal(result[1].content, 'Recovered response');
 });

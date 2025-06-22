@@ -129,9 +129,15 @@ ${toolDescriptions}
 Rules:
 1. ALWAYS use tools when calculation or data retrieval is needed
 2. Output tool calls in the exact format above
-3. You can make multiple tool calls by outputting multiple TOOL_CALL lines
-4. After tool calls, I will provide results and you can continue the conversation
-5. Be precise with parameter values and types`;
+3. FOR SEQUENTIAL TASKS: Make ONE tool call at a time, wait for the result, then continue
+4. ALWAYS use the actual result from previous tool calls as input to subsequent tools
+5. After tool calls, I will provide results and you can continue the conversation
+6. Be precise with parameter values and types
+
+IMPORTANT: For multi-step calculations, execute tools sequentially:
+- Step 1: Make first tool call and wait for result
+- Step 2: Use that result in the next tool call
+- Never guess or use incorrect values for subsequent tool calls`;
 }
 
 /**
@@ -187,10 +193,19 @@ function parseManualToolCalls(content: string): {
   let lastIndex = 0;
   const cleanedParts: string[] = [];
 
-  // Improved tool call extraction with multiple strategies
+  // UNIVERSAL SEQUENTIAL FIX: Only parse the FIRST tool call to enforce sequential execution
   const toolCallMatches = content.match(/TOOL_CALL:\s*\{[^}]*\}/g);
   if (toolCallMatches) {
-    for (const match of toolCallMatches) {
+    // Process only the first tool call for proper sequential execution
+    const match = toolCallMatches[0];
+    
+    // Log if multiple tool calls were attempted (for debugging)
+    if (toolCallMatches.length > 1) {
+      console.log(`[DEBUG] Sequential execution: Found ${toolCallMatches.length} tool calls, processing first one only`);
+    }
+    
+    // Process only the first match
+    {
       const jsonStr = match.replace(/TOOL_CALL:\s*/, '');
       
       // Try multiple repair strategies for incomplete JSON

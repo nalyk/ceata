@@ -19,7 +19,7 @@ export interface PlanStep {
   readonly priority: StepPriority;
 }
 
-export type StepType = 'chat' | 'tool_execution' | 'reflection' | 'completion';
+export type StepType = 'chat' | 'tool_execution' | 'reflection' | 'completion' | 'planning';
 export type StepPriority = 'critical' | 'normal' | 'optional';
 export type PlanStrategy = 'direct' | 'iterative' | 'parallel_tools' | 'reflection_enhanced' | 'tool_then_chat';
 

@@ -23,6 +23,12 @@ export class Executor {
           return await this.executeToolCalls(ctx);
         case 'completion':
           return this.executeCompletion();
+        case 'planning':
+          // Planning step - treat as a chat step with planning context
+          return await this.executePlanning(step, ctx);
+        case 'reflection':
+          // Reflection step - treat as a chat step with reflection context
+          return await this.executeReflection(step, ctx);
         default:
           throw new Error(`Unknown step type: ${step.type}`);
       }
@@ -271,6 +277,60 @@ export class Executor {
       isComplete: true,
       metrics: {}
     };
+  }
+
+  /**
+   * Handles planning step - quantum planner execution
+   */
+  private async executePlanning(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
+    logger.debug('🔧 Executing planning step');
+    
+    // For planning steps, we create a planning-focused message
+    const planningMessage: ChatMessage = {
+      role: 'user',
+      content: step.message?.content || 'Create an execution plan for the given task.'
+    };
+    
+    const messages = [...ctx.messages, planningMessage];
+    
+    try {
+      return await this.smartProviderExecution(messages, ctx);
+    } catch (error) {
+      logger.warn(`Planning step failed: ${error}`);
+      return {
+        delta: [],
+        isComplete: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+        metrics: {}
+      };
+    }
+  }
+
+  /**
+   * Handles reflection step - quantum reflection and verification
+   */
+  private async executeReflection(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
+    logger.debug('🔧 Executing reflection step');
+    
+    // For reflection steps, we create a reflection-focused message
+    const reflectionMessage: ChatMessage = {
+      role: 'user',
+      content: step.message?.content || 'Reflect on the previous results and verify correctness.'
+    };
+    
+    const messages = [...ctx.messages, reflectionMessage];
+    
+    try {
+      return await this.smartProviderExecution(messages, ctx);
+    } catch (error) {
+      logger.warn(`Reflection step failed: ${error}`);
+      return {
+        delta: [],
+        isComplete: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+        metrics: {}
+      };
+    }
   }
 
   /**

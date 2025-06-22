@@ -147,6 +147,34 @@ export function tryParseJson(text: string): any {
     // Try to parse as direct JSON first
     return JSON.parse(text);
   } catch {
+    // Check for TOOL_CALL format first (for vanilla tool calling)
+    const toolCallMatch = text.match(/TOOL_CALL:\s*\{/);
+    if (toolCallMatch) {
+      try {
+        const startIndex = toolCallMatch.index! + toolCallMatch[0].length - 1; // Include the opening brace
+        let braceCount = 0;
+        let jsonStr = '';
+        
+        for (let i = startIndex; i < text.length; i++) {
+          const char = text[i];
+          jsonStr += char;
+          
+          if (char === '{') {
+            braceCount++;
+          } else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              break;
+            }
+          }
+        }
+        
+        return JSON.parse(jsonStr);
+      } catch {
+        return null;
+      }
+    }
+    
     // Look for fenced JSON blocks
     const jsonMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
     if (jsonMatch) {
