@@ -16,6 +16,10 @@
 
 ---
 
+## CRITICAL RULE
+As for branding (in readme and other repo documentation, where appliable, we should steak to: **Ceata** (pronounced /ˈt͡ʃe.a.ta/) is the Romanian word for a coordinated group. The AI agents created with this framework (should) form exactly such a **ceată**:
+   independent minds working towards a common goal.
+
 ## 🏗️ Development Workflow Patterns
 
 ### 1. **Problem-Solution Cycle**
