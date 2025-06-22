@@ -1,97 +1,60 @@
-# CEATA – Universal AI Agent Architecture
+# Ceata – Universal AI Agent Framework
 
-> **Ceata** (pronounced /ˈt͡ʃe.a.ta/) is the Romanian word for a coordinated group—be it soldiers, haiduci, or carol singers. The AI agents created with this framework form exactly such a **ceată**: independent minds working towards a common goal.
+> **Ceata** (pronounced /ˈt͡ʃe.a.ta/) is the Romanian word for a coordinated group. The AI agents created with this framework form exactly such a **ceată**: independent minds working towards a common goal.
 
-**Intelligent AI framework featuring adaptive planning and universal model compatibility** – replacing hardcoded logic with intelligent reasoning. Built for cost-effective AI with free model compatibility and production-ready reliability.
+**TypeScript AI framework that makes advanced tool calling work with ANY model** – including free models that don't natively support function calling. Built for cost-effective AI with production-ready reliability.
 
 ---
 
-## 🚀 What Makes This Framework Special?
+## 🎯 What Makes Ceata Special?
 
-### Intelligent Agent Architecture
+### The VANILLA Tool Calling Innovation
 
-The framework eliminates hardcoded logic through intelligent provider racing and universal tool calling:
+Ceata's breakthrough innovation is **VANILLA tool calling** – using prompt engineering and text parsing to give ANY language model tool calling capabilities, even free models that don't support native function calling APIs.
 
 ```typescript
-// ❌ OLD WAY: Hardcoded logic (brittle, model-specific)
-if (message.includes("calculate") && message.includes("then")) {
-  return { isMultiStep: true, tools: ["multiply", "divide"] };
-}
+// ❌ This FAILS with free models like Mistral-Small:free
+const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  body: JSON.stringify({
+    model: "mistralai/mistral-small-3.2-24b-instruct:free",
+    tools: [{ name: "multiply", ... }] // API returns "No endpoints found that support tool use"
+  })
+});
 
-// ✅ INTELLIGENT WAY: Universal compatibility
-const result = await agent.run(messages, tools, providers);
-// Automatically handles: provider selection, tool calling, error recovery
+// ✅ This WORKS with VANILLA approach
+const vanillaProvider = createVanillaOpenRouterProvider();
+const result = await agent.run(messages, tools, { primary: [vanillaProvider] });
+// Uses prompt engineering + text parsing to enable tool calling
 ```
 
 ### Pipeline Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ AGENT CONTEXT   │───▶│ EXECUTOR        │───▶│ PROVIDER RACING │
-│ Message & State │    │ Step Planning   │    │ Fastest Response│
-│ Management      │    │ Tool Execution  │    │ Error Fallback  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ REFLECTOR       │    │ TOOL CALLING    │    │ RESULT          │
-│ Quality Check   │    │ Universal Text  │    │ Conversation    │
-│ Validation      │    │ Based Approach  │    │ Messages        │
+│ PLANNER         │───▶│ EXECUTOR        │───▶│ REFLECTOR       │
+│ Task Analysis   │    │ Provider Racing │    │ Quality Check   │
+│ Step Planning   │    │ Tool Execution  │    │ Error Recovery  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ---
 
-## ✨ The Philosophy of Ceată
+## 🚀 Free-First Strategy
 
-**Ceată** represents the essence of coordinated intelligence - multiple AI agents working together like a well-orchestrated group. The framework enables this through:
+**Ceata prioritizes free models** and only falls back to paid ones when necessary:
 
-- **Universal Compatibility**: Like a diverse group where everyone contributes their unique skills
-- **Provider Racing**: Multiple AI providers competing and collaborating for the best outcome  
-- **Intelligent Coordination**: Each component (agent, executor, reflector) plays its role perfectly
-- **Shared Purpose**: All agents work towards the common goal of solving user problems effectively
-
----
-
-## Cost-Effective AI Strategy
-
-**CEATA** is designed for the **modern AI landscape** where free models have become surprisingly capable with the right architecture.
-
-### The Cost Challenge
-- Premium models (GPT-4, Claude) are powerful but expensive at scale
-- Free models work well with proper prompt engineering and tool calling
-- Most frameworks lock you into specific provider APIs
-
-### The Framework Solution
-```
-Primary: FREE Models (OpenRouter free tier, Google AI Studio)
-         ↓ (enhanced with vanilla tool calling)
-Fallback: Premium Models (only when needed)
+```typescript
+const providers = [
+  // FREE models with VANILLA tool calling
+  { p: vanillaOpenRouter, model: "mistralai/mistral-small-3.2-24b-instruct:free" },
+  { p: googleAI, model: "models/gemini-2.0-flash-thinking-exp" },
+  
+  // PAID fallback (only when free models exhausted)
+  { p: openai, model: "gpt-4o-mini" }
+];
 ```
 
-**Result**: Significant cost reduction while maintaining reliability through intelligent provider management.
-
----
-
-## 🧠 Intelligent Framework Features
-
-### Universal Compatibility
-- **No API Lock-in**: Works with any LLM through text-based tool calling
-- **Provider Agnostic**: Supports OpenAI, Google, OpenRouter, and more
-- **Model Flexibility**: Free models, premium models, experimental models
-- **Tool Independence**: Any tool can be integrated through simple text parsing
-
-### Robust Architecture
-- **Error Recovery**: Automatic provider fallback when failures occur
-- **Provider Racing**: Multiple providers compete for fastest response
-- **Sequential Logic**: Reliable multi-step execution (proven with 15×8÷3=40 test)
-- **Memory Management**: Intelligent conversation pruning for cost optimization
-
-### Production-Ready Features
-- **Universal Tool Compatibility**: Works with ANY tool through vanilla calling
-- **Intelligent Routing**: Smart provider selection based on task and availability
-- **Type Safety**: Full TypeScript coverage for reliable development
-- **Comprehensive Testing**: 82 tests covering core functionality
+**Result**: Significant cost savings while maintaining reliability through intelligent provider management.
 
 ---
 
@@ -101,23 +64,22 @@ Fallback: Premium Models (only when needed)
 git clone https://github.com/nalyk/ceata.git
 cd ceata
 npm install
-cp .env.example .env # add your API keys
+cp .env.example .env # Add your API keys
 npm run build
 
-# Run Examples
-npm run example                    # Basic math agent
-npm run example:quantum           # Advanced quantum planning
-npm run example:test-correctness  # Verify correctness (15×8÷3=40)
-npm test                         # Run test suite
+# Try it out
+npm run example          # Basic math agent
+npm run example:quantum  # Advanced quantum planning
+npm test                 # Run test suite
 ```
 
-### Basic Usage Example
+### Basic Usage
 
 ```typescript
 import { ConversationAgent, defineTool } from "ceata";
 import { createVanillaOpenRouterProvider } from "ceata/providers/openrouterVanilla";
 
-// Define universal tools
+// Define tools that work with ANY model
 const multiplyTool = defineTool({
   name: "multiply",
   description: "Multiply two numbers together",
@@ -132,315 +94,231 @@ const multiplyTool = defineTool({
   execute: async ({ a, b }) => a * b,
 });
 
-const divideTool = defineTool({
-  name: "divide", 
-  description: "Divide two numbers",
-  parameters: {
-    type: "object",
-    properties: {
-      a: { type: "number", description: "Dividend" },
-      b: { type: "number", description: "Divisor" },
-    },
-    required: ["a", "b"],
-  },
-  execute: async ({ a, b }) => a / b,
-});
-
-// Create intelligent agent with pipeline architecture
+// Create agent with VANILLA provider (works with free models)
 const agent = new ConversationAgent();
-
-// FREE provider with quantum intelligence
 const provider = createVanillaOpenRouterProvider(undefined, undefined, {
   headers: {
     "HTTP-Referer": "https://example.com",
-    "X-Title": "Quantum CEATA Agent",
+    "X-Title": "My Ceata Agent",
   },
 });
 
-const tools = { multiply: multiplyTool, divide: divideTool };
+const tools = { multiply: multiplyTool };
+const providerGroup = { primary: [provider], fallback: [] };
 
-// Execute with intelligent planning
+// Execute with automatic tool calling
 const result = await agent.run(
   [
     {
-      role: "system", 
-      content: "You are a helpful math assistant with intelligent planning capabilities."
-    },
-    {
       role: "user",
-      content: "Calculate the area of a rectangle that is 15 units long and 8 units wide, then divide that area by 3."
+      content: "Calculate 15 times 8"
     }
   ],
   tools,
-  { primary: [provider], fallback: [] },
-  { maxSteps: 10, providerStrategy: 'smart' }
+  providerGroup,
+  { maxSteps: 10 }
 );
 
-// Result: Perfect sequential execution yielding 40
-console.log(result.messages[result.messages.length - 1].content); // Contains "40"
+console.log(result.messages[result.messages.length - 1].content);
+// Works even with free models!
 ```
 
 ---
 
-## 🔧 Framework Features Comparison
+## 🔧 Core Features
 
-| Feature | Basic Approach | CEATA Framework | Improvement |
-|---------|----------------|---------------------------|-------------|
-| Planning Logic | Hardcoded rules | Provider racing + intelligent routing | Universal adaptability |
-| Task Decomposition | Static patterns | Adaptive step planning | Dynamic breakdown |
-| Error Handling | Basic retry | Provider fallback + recovery | Intelligent recovery |
-| Multi-step Execution | Regex detection | Vanilla tool calling | Perfect logical flow |
-| Tool Compatibility | Framework-specific | Universal text-based approach | Any model, any tool |
-| Memory Management | Simple pruning | Intelligent conversation management | Optimal performance |
+### VANILLA Tool Calling
+- **Universal Compatibility**: Works with ANY language model
+- **Prompt Engineering**: Enhanced system prompts teach models to output structured tool calls
+- **Text Parsing**: Robust JSON extraction with multiple repair strategies
+- **Sequential Execution**: Ensures proper step-by-step tool execution
 
-### Sequential Logic Correctness Test
+### Provider System
+- **Provider Racing**: Multiple providers compete for fastest response
+- **Intelligent Fallback**: Automatic failover to backup providers
+- **Free-First Strategy**: Prioritizes free models, uses paid ones only when needed
+- **Provider Health**: Tracks provider success/failure rates
 
-The critical test case that proves intelligent sequential execution works:
-
-**Input**: "Calculate area of 15×8 rectangle, then divide by 3"  
-**Expected**: 15 × 8 = 120, then 120 ÷ 3 = 40  
-**Framework Result**: ✅ Perfect sequential execution with correct answer (40)
+### Pipeline Architecture
+- **Planner**: Analyzes tasks and creates execution plans
+- **Executor**: Handles provider racing and tool execution
+- **Reflector**: Quality assurance and error recovery
+- **Agent Context**: Manages conversation state and metrics
 
 ---
 
-## 🛠️ Architecture Deep Dive
+## 🧠 Two Agent Types
 
-### Core Framework Components
+### ConversationAgent
+Standard pipeline agent with intelligent planning:
 
 ```typescript
-// Main Agent Interface
-export class ConversationAgent {
-  async run(
-    messages: ChatMessage[],
-    tools: Record<string, Tool>,
-    providers: ProviderGroup,
-    options?: AgentOptions
-  ): Promise<ConversationResult>
-}
+import { ConversationAgent } from "ceata";
 
-// Unified API
-export async function runAgent(
-  messages: ChatMessage[],
-  tools: Record<string, Tool>,
-  providers: ProviderConfig[],
-  options?: AgentOptions
-): Promise<ChatMessage[]>
+const agent = new ConversationAgent();
+const result = await agent.run(messages, tools, providers);
 ```
 
-### Universal Vanilla Tool Calling
-
-The framework's breakthrough **vanilla tool calling** approach works with ANY model:
+### QuantumConversationAgent
+Advanced agent with enhanced planning capabilities:
 
 ```typescript
-// UNIVERSAL COMPATIBILITY: Prompt engineering + text parsing
-const promptEnhancement = `
-Rules for sequential tasks:
-1. Make ONE tool call at a time
-2. Wait for result before next tool
-3. Use ACTUAL results as input to subsequent tools
-4. Format: TOOL_CALL: {"name": "multiply", "arguments": {"a": 15, "b": 8}}
-`;
+import { QuantumConversationAgent } from "ceata";
 
-// Works with: OpenRouter free models, Google AI Studio, ANY LLM
-// No hardcoded function calling required!
+const quantumAgent = new QuantumConversationAgent();
+const result = await quantumAgent.run(messages, tools, providers);
+// Includes HTN decomposition, Tree-of-Thoughts, and intent recognition
 ```
 
 ---
 
-## 📚 Complete Examples
+## 🛠️ Available Providers
 
-### Available Example Scripts
-```bash
-npm run example                    # Basic math agent demonstration
-npm run example:quantum           # Advanced quantum planning demo
-npm run example:test-correctness  # Correctness verification (15×8÷3=40)
-npm run example:memory            # Memory management showcase
-npm run example:pipeline          # Pipeline architecture demo
-npm run example:chat              # Chat with tools example
+### VANILLA OpenRouter (Recommended for Free Models)
+```typescript
+import { createVanillaOpenRouterProvider } from "ceata/providers/openrouterVanilla";
+
+const provider = createVanillaOpenRouterProvider();
+// Uses prompt engineering for tool calling with free models
 ```
 
-### Testing Scripts
-```bash
-npm test                          # Run full test suite (82 tests)
-npm run test:vanilla              # Test vanilla tool calling specifically
-npm run test:quantum              # Test quantum planning features
-npm run test:integration          # End-to-end integration tests
+### Standard Providers
+```typescript
+import { openai } from "ceata/providers/openai";
+import { googleOpenAI } from "ceata/providers/googleOpenAI";
+import { createOpenRouterProvider } from "ceata/providers/openrouter";
+
+// For models with native tool calling support
 ```
 
 ---
 
-## 🔧 Provider Setup
-
-### Environment Configuration
-```bash
-# .env file
-OPENROUTER_API_KEY=your_key_here
-GOOGLE_API_KEY=your_key_here
-OPENAI_API_KEY=your_key_here  # Fallback only
-```
-
-### FREE Model Strategy
-```typescript
-const providers = [
-  // PRIMARY: Free models with quantum enhancement
-  { p: vanillaOpenRouter, model: "mistralai/mistral-small-3.2-24b-instruct:free" },
-  { p: googleAI, model: "models/gemini-2.0-flash-thinking-exp" },
-  
-  // FALLBACK: Premium only when needed
-  { p: openai, model: "gpt-4o-mini" }
-];
-```
-
----
-
-## ⚡ Advanced Quantum Features
-
-### Intent Analysis
-```typescript
-// Quantum Planner automatically recognizes:
-// - Sequential operations ("then", "after", "next")  
-// - Parallel tasks ("and", "also", "simultaneously")
-// - Conditional logic ("if", "when", "unless")
-// - Tool dependencies (math → formatting → output)
-```
-
-### Hierarchical Task Networks (HTN)
-```typescript
-// Automatic decomposition:
-"Calculate area then divide by 3" →
-├── Calculate area (15 × 8)
-│   └── Use multiply tool
-└── Divide result by 3  
-    └── Use divide tool with previous result
-```
-
-### Tree-of-Thoughts Reasoning
-```typescript
-// Multiple reasoning paths evaluated:
-Path A: multiply(15,8) → divide(result,3) ✅ Optimal
-Path B: divide(15,3) → multiply(result,8) ❌ Wrong semantics  
-Path C: calculate manually → parse result ❌ Tool bypass
-```
-
----
-
-## 🧪 Testing & Verification
-
-```bash
-npm test                           # Full test suite
-node dist/examples/testCorrectAnswer.js  # Quantum correctness
-npm run build && npm run example         # Integration test
-```
-
-### Quantum Metrics
-```typescript
-interface QuantumMetrics {
-  strategyType: 'sequential' | 'parallel' | 'adaptive';
-  intentConfidence: number;           // Intent analysis accuracy
-  planComplexity: number;            // Task decomposition depth  
-  adaptations: number;               // Self-healing activations
-  learningPatterns: string[];        // Discovered patterns
-}
-```
-
----
-
-## 🗺️ Project Structure
+## 📁 Project Structure
 
 ```
 src/
 ├── core/
-│   ├── ConversationAgent.ts        # 🚀 Main agent implementation
-│   ├── QuantumConversationAgent.ts # 🧠 Advanced planning agent
-│   ├── QuantumPlanner.ts           # 🎯 Intelligent planning engine
-│   ├── Executor.ts                 # ⚡ Provider racing + tools
-│   ├── Reflector.ts               # 🛡️  Quality assurance
-│   ├── AgentRunner.ts              # 🔧 Unified API interface
-│   └── AgentContext.ts            # 📊 State management
+│   ├── ConversationAgent.ts        # Standard pipeline agent
+│   ├── QuantumConversationAgent.ts # Advanced planning agent
+│   ├── Planner.ts                  # Task planning engine
+│   ├── QuantumPlanner.ts          # Advanced planning with HTN
+│   ├── Executor.ts                 # Provider racing + tool execution
+│   ├── Reflector.ts               # Quality assurance
+│   └── AgentContext.ts            # State management
 ├── providers/
-│   ├── openrouterVanilla.ts       # 🆓 FREE model optimization
-│   ├── openrouter.ts              # 🔧 Standard OpenRouter
-│   ├── google.ts                  # 🧪 Google AI integration
-│   └── openai.ts                  # 💰 OpenAI integration
-├── examples/
-│   ├── mathAgent.ts               # 🧮 Basic math demonstration
-│   ├── quantumMathAgent.ts        # 🧠 Advanced planning demo
-│   ├── testCorrectAnswer.ts       # ✅ Correctness verification
-│   ├── memoryManagementExample.ts # 💾 Memory optimization
-│   └── pipelineExample.ts         # 🏗️  Architecture showcase
-└── __tests__/
-    ├── conversationAgent.test.ts  # 🧪 Core agent tests
-    ├── quantumPlanner.test.ts     # 🧠 Planning intelligence tests
-    ├── vanillaToolCalling.test.ts # 🛠️  Tool calling tests
-    ├── quantumIntegration.test.ts # 🔗 Integration tests
-    └── tryParseJson.test.ts       # 📝 JSON parsing tests
+│   ├── openrouterVanilla.ts       # VANILLA tool calling
+│   ├── openrouter.ts              # Standard OpenRouter
+│   ├── google.ts                  # Google AI
+│   └── openai.ts                  # OpenAI
+└── examples/
+    ├── mathAgent.ts               # Basic math demonstration
+    ├── quantumMathAgent.ts        # Advanced planning demo
+    └── testCorrectAnswer.ts       # Correctness verification
 ```
 
 ---
 
-## 🎯 Getting Started Guide
+## 🧪 Testing & Examples
 
-### Basic Agent Usage
+### Available Examples
+```bash
+npm run example                    # Basic math agent
+npm run example:quantum           # Quantum planning agent
+npm run example:test-correctness  # Sequential execution test (15×8÷3=40)
+npm run example:memory            # Memory management demo
+npm run example:pipeline          # Pipeline architecture demo
+```
+
+### Test Suite
+```bash
+npm test                          # Full test suite
+npm run test:vanilla              # VANILLA tool calling tests
+npm run test:quantum              # Quantum planning tests
+npm run test:integration          # Integration tests
+```
+
+---
+
+## 🌟 Real-World Performance
+
+### The Critical Test Case
+**Problem**: "Calculate the area of a rectangle that is 15 units long and 8 units wide, then divide that area by 3."
+
+**Expected**: 15 × 8 = 120, then 120 ÷ 3 = 40
+
+**Ceata Result**: ✅ Perfect sequential execution with correct answer (40)
+
+This proves that Ceata's VANILLA tool calling and pipeline architecture can handle complex multi-step reasoning with free models.
+
+---
+
+## 💰 Cost Effectiveness
+
+### Free Model Strategy
+- **Mistral-Small 3.2 24B**: Free on OpenRouter
+- **DeepSeek R1 8B**: Free on OpenRouter  
+- **Google Gemini 2.0 Flash**: Free on Google AI Studio
+- **Fallback to GPT-4o-mini**: Only when free models fail
+
+### Typical Cost Savings
+- **Before**: $0.03-0.06 per 1K tokens (GPT-4 class models)
+- **After**: $0.00 for most operations (free models)
+- **Savings**: 90%+ reduction in AI costs
+
+---
+
+## ⚙️ Configuration
+
+### Environment Setup
+```bash
+# .env file
+OPENROUTER_API_KEY=your_key_here    # For free models
+GOOGLE_API_KEY=your_key_here        # For Gemini free tier
+OPENAI_API_KEY=your_key_here        # Fallback only
+```
+
+### Provider Configuration
 ```typescript
-import { ConversationAgent, defineTool, runAgent } from "ceata";
-
-// Simple unified API approach
-const messages = [
-  { role: "user", content: "Calculate 15 × 8 then divide by 3" }
-];
-
-const tools = {
-  multiply: defineTool({...}),
-  divide: defineTool({...})
-};
-
 const providers = [
-  { p: freeProvider, model: "mistral-free", priority: "primary" },
-  { p: premiumProvider, model: "gpt-4o-mini", priority: "fallback" }
+  { p: vanillaOpenRouter1, model: "mistralai/mistral-small-3.2-24b-instruct:free", priority: "primary" },
+  { p: vanillaOpenRouter2, model: "deepseek/deepseek-r1-0528-qwen3-8b:free", priority: "primary" },
+  { p: googleAI, model: "models/gemini-2.0-flash-thinking-exp", priority: "primary" },
+  { p: openai, model: "gpt-4o-mini", priority: "fallback" }
 ];
-
-const result = await runAgent(messages, tools, providers);
 ```
-
-### Advanced Features Available
-| Feature | Implementation | Benefit |
-|---------|----------------|---------|
-| Provider Racing | Multiple providers compete | Fastest response wins |
-| Vanilla Tool Calling | Text-based tool invocation | Universal model compatibility |
-| Memory Management | Intelligent conversation pruning | Cost and performance optimization |
-| Error Recovery | Provider fallback chains | Robust execution |
 
 ---
 
-## 🛡️ Production Readiness
+## 🚨 Important Limitations
 
-### Reliability Features
-- **Error Recovery**: Quantum self-healing for failed executions
-- **Provider Fallback**: Intelligent degradation when free models fail
-- **Memory Management**: Efficient conversation pruning  
-- **Type Safety**: Full TypeScript coverage
-- **Zero Dependencies**: Pure Node.js implementation
+### Free Model Constraints
+- Most free models don't support native tool calling APIs
+- Rate limits and quotas may apply
+- Performance varies between free models
+- Sequential tool execution may be slower than parallel
 
-### Performance Optimizations
-- **Provider Racing**: Fastest response wins
-- **Parallel Tool Execution**: Concurrent tool calls when possible
-- **Smart Caching**: Provider health monitoring
-- **Efficient Parsing**: Structured JSON extraction
+### VANILLA Tool Calling
+- Relies on prompt engineering (model-dependent quality)
+- Text parsing can occasionally fail with malformed JSON
+- Sequential execution prevents parallel tool calls
+- Requires careful prompt design for complex scenarios
 
 ---
 
 ## 🤝 Contributing
 
-1. **Fork & Feature Branch**: Create feature branches for new capabilities
-2. **Add Tests**: Extend quantum intelligence tests in `src/__tests__/`
-3. **Follow Patterns**: Use the quantum planning architecture
-4. **Document**: Update examples and documentation
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Add tests**: Extend the test suite in `src/__tests__/`
+4. **Follow TypeScript strict mode**: All code must compile without errors
+5. **Document changes**: Update examples and documentation
+6. **Submit a pull request**
 
 ### Development Guidelines
-- Leverage provider racing for optimal performance
-- Use vanilla tool calling for universal compatibility
+- Test with both free and paid models
+- Use VANILLA providers for universal compatibility
 - Implement proper error handling with fallback providers
-- Test with both free and premium models for cost optimization
+- Follow the pipeline architecture patterns
 
 ---
 
@@ -450,24 +328,22 @@ This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
-## 🌟 The CEATA Advantage
+## 🎯 The Ceata Advantage
 
-**CEATA** represents intelligent AI agent architecture with practical benefits:
+**Ceata democratizes advanced AI capabilities:**
 
-- **🎯 Universal**: Works with any model through vanilla tool calling
-- **🧠 Intelligent**: Provider racing and adaptive routing
-- **🔄 Resilient**: Automatic error detection and provider fallback
-- **💰 Cost-Effective**: Free-model-first strategy with premium fallbacks
-- **🚀 Practical**: Production-ready with comprehensive testing
+- **🆓 Free-First**: Works with free models through VANILLA tool calling
+- **🔧 Universal**: Any model, any tool, any provider
+- **🏗️ Pipeline**: Professional architecture with proper error handling  
+- **💰 Cost-Effective**: 90%+ cost reduction while maintaining quality
+- **🧪 Production-Ready**: Comprehensive testing and TypeScript safety
 
-**Ready to build intelligent AI agents?**
+**Ready to build cost-effective AI agents?**
 
 ```bash
-git clone https://github.com/nalyk/ceata.git
-cd ceata && npm install && npm run build
-npm run example  # Start with basic math agent
+npm install ceata
 ```
 
 ---
 
-Built with ❤️ and intelligent engineering by the CEATA team - where AI agents form a coordinated **ceată** for intelligent problem solving.
+Built with ❤️ and intelligent engineering – where AI agents form a coordinated **ceată** for intelligent problem solving.

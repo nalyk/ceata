@@ -1,326 +1,279 @@
-# CEATA Architecture
+# Ceata Architecture
 
-**CEATA** - where AI agents form a coordinated **ceată** (Romanian for organized group). Intelligent AI agent framework featuring pipeline architecture, universal model compatibility, and cost-optimized execution through provider racing and vanilla tool calling.
+**Ceata** (pronounced /ˈt͡ʃe.a.ta/) – the Romanian word for a coordinated group. In Ceata, AI agents form exactly such a **ceată**: independent components working in perfect coordination to deliver intelligent, cost-effective AI solutions.
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Actual Architecture Overview
 
-The framework provides a clean pipeline approach that eliminates vendor lock-in and hardcoded logic:
+Ceata is a production-ready TypeScript framework that implements a sophisticated pipeline architecture for universal AI agent capabilities. The framework's core innovation is **VANILLA tool calling** – enabling any text-based model to perform tool calling through prompt engineering and text parsing.
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ CONVERSATION    │───▶│ EXECUTOR        │───▶│ REFLECTOR       │
-│ AGENT           │    │ Provider Racing │    │ Quality Check   │
-│ Main Interface  │    │ Tool Execution  │    │ Validation      │
+│ CONVERSATION    │───▶│ PLANNER         │───▶│ EXECUTOR        │
+│ AGENT           │    │ Step Planning   │    │ Provider Racing │
+│ Entry Point     │    │ Tool Detection  │    │ Tool Execution  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
           │                      │                      │
           ▼                      ▼                      ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ AGENT CONTEXT   │    │ PROVIDER        │    │ VANILLA TOOLS   │
-│ State & Memory  │    │ Universal APIs  │    │ Text-Based      │
-│ Management      │    │ Error Fallback  │    │ Calling         │
+│ AGENT CONTEXT   │    │ REFLECTOR       │    │ VANILLA TOOLS   │
+│ State & Memory  │    │ Quality Check   │    │ Text-Based      │
+│ Provider Groups │    │ Error Handling  │    │ Universal       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-**Production-ready with comprehensive testing (82 test cases)**
-
 ---
 
-## 🌟 The Framework Advantage
+## 🌟 Core Components
 
-### Traditional vs Modern Approach
+### 1. Conversation Agents
 
-| Traditional Approach | CEATA Framework | Practical Improvement |
-|---------------------|---------------------------|----------------------|
-| `if (msg.includes("calculate"))` | Provider racing + intelligent routing | Universal compatibility |
-| Single provider dependency | Multi-provider fallback chains | Reliability through redundancy |
-| API-specific tool calling | Universal text-based approach | Works with any model |
-| Static error handling | Dynamic provider fallback | Robust error recovery |
-| Framework lock-in | Provider agnostic design | Freedom of choice |
+**Two agent implementations for different use cases:**
 
-### Sequential Logic Validation
+#### ConversationAgent (`src/core/ConversationAgent.ts`)
+- **Production-ready classical agent** with optimized pipeline execution
+- Smart provider selection with racing and fallback logic
+- Sequential step execution with error recovery
+- **Perfect for production workloads** requiring reliability
 
-**The Test Case That Validates Correctness:**
-- **Input**: "Calculate area of 15×8 rectangle, then divide by 3"
-- **Expected**: 15×8=120, then 120÷3=40
-- **Framework Result**: ✅ Perfect sequential execution yielding 40
-- **Validation**: Proven through comprehensive test suite
+#### QuantumConversationAgent (`src/core/QuantumConversationAgent.ts`)  
+- **Experimental enhanced agent** with advanced planning capabilities
+- Uses QuantumPlanner for intent analysis and multi-step decomposition
+- Tree-of-thoughts planning with alternative path generation
+- **Best for complex tasks** requiring sophisticated reasoning
 
----
+### 2. Pipeline Architecture
 
-## 🚀 Quantum Planner Architecture
-
-### File: `src/core/QuantumPlanner.ts` (~400 LOC)
-
-The revolutionary planning engine with 5 distinct phases:
-
+#### Planner (`src/core/Planner.ts`)
 ```typescript
-export class QuantumPlanner {
-  // PHASE 1: Intent Recognition Engine
-  async analyzeIntent(message: string, context: AgentContext): Promise<UserIntent> {
-    // LLM-powered understanding beyond keyword matching
-    // Recognizes: sequential, parallel, conditional operations
+class Planner {
+  plan(ctx: AgentContext): Plan {
+    // Analyzes user message for tool requirements
+    // Detects multi-step mathematical operations
+    // Creates optimized execution strategy
   }
-
-  // PHASE 2: HTN-Inspired Task Decomposition  
-  async decomposeTask(intent: UserIntent, context: AgentContext): Promise<TaskHierarchy> {
-    // Hierarchical Task Networks for intelligent breakdown
-    // Creates dependency graphs and execution sequences
-  }
-
-  // PHASE 3: Tree-of-Thoughts Planning
-  async generateExecutionPaths(hierarchy: TaskHierarchy): Promise<QuantumStep[]> {
-    // Multiple reasoning paths evaluated and optimized
-    // Dynamic branching and path selection
-  }
-
-  // PHASE 4: Self-Healing Logic
-  async adaptPlan(error: ExecutionError, currentPlan: QuantumPlan): Promise<QuantumPlan> {
-    // Automatic error detection and plan adaptation
-    // Provider fallback and alternative path generation
-  }
-
-  // PHASE 5: Memory & Learning System
-  async learnFromExecution(result: ExecutionResult): Promise<void> {
-    // Pattern recognition and future optimization
-    // Continuous improvement through experience
+  
+  private detectMultiStepMath(content: string): boolean {
+    // Recognizes patterns like "calculate area then divide by 3"
+    // Returns true for sequential operations
   }
 }
 ```
 
-### Key Quantum Features
+**Key Features:**
+- Multi-step task detection with sequence indicators
+- Tool requirement analysis based on message content
+- Strategy selection: `direct`, `iterative`, `parallel_tools`
 
-#### 1. Universal Intent Analysis
-```typescript
-// Automatically recognizes ANY task pattern:
-"Calculate area then divide by 3" → Sequential execution
-"Get weather and check calendar" → Parallel execution  
-"If temperature > 20, recommend outfit" → Conditional logic
-"Process files in batches of 10" → Iterative patterns
-```
-
-#### 2. HTN-Inspired Decomposition
-```typescript
-// Hierarchical breakdown:
-"Calculate area then divide by 3" →
-├── PRIMARY TASK: Calculate area
-│   ├── SUB-TASK: Identify inputs (15, 8)
-│   ├── TOOL: multiply(15, 8) → 120
-│   └── RESULT: Area = 120
-└── SEQUENTIAL TASK: Divide by 3
-    ├── INPUT: Use previous result (120)
-    ├── TOOL: divide(120, 3) → 40
-    └── RESULT: Final answer = 40
-```
-
-#### 3. Tree-of-Thoughts Reasoning
-```typescript
-// Multiple paths evaluated:
-Path A: multiply(15,8) → divide(result,3) ✅ Semantically correct
-Path B: divide(15,3) → multiply(result,8) ❌ Wrong order
-Path C: calculate manually without tools ❌ Bypasses available tools
-// Quantum Planner selects optimal Path A
-```
-
-#### 4. Self-Healing Intelligence
-```typescript
-// Automatic error recovery:
-if (toolCallFails) {
-  → Try alternative tool
-  → Adjust parameters
-  → Switch providers
-  → Generate corrective plan
-}
-```
-
----
-
-## 🔧 Enhanced Executor Architecture
-
-### File: `src/core/Executor.ts` (~200 LOC enhanced)
-
-Quantum-enhanced execution with universal tool compatibility:
-
+#### Executor (`src/core/Executor.ts`)
 ```typescript
 class Executor {
-  async executeQuantumStep(step: QuantumStep, ctx: AgentContext): Promise<StepResult> {
-    // Enhanced execution supporting:
-    // - Planning steps (intent analysis, decomposition)
-    // - Reflection steps (self-healing, adaptation)
-    // - Universal tool calls (vanilla approach)
-  }
-
-  private async executeVanillaToolCall(call: ToolCall, ctx: AgentContext): Promise<any> {
-    // UNIVERSAL BREAKTHROUGH: Works with ANY model
-    // Prompt engineering + text parsing
-    // No hardcoded function calling required
+  async execute(step: PlanStep, ctx: AgentContext): Promise<StepResult> {
+    // Smart provider execution strategy
+    // Provider racing for paid models
+    // Sequential execution for free models (quota preservation)
   }
 }
 ```
 
-#### Universal Vanilla Tool Calling
+**Execution Strategies:**
+- **Smart Strategy**: Sequential for free APIs, racing for paid APIs
+- **Racing Strategy**: Promise.any() for maximum speed
+- **Sequential Strategy**: One provider at a time for reliability
+
+#### Reflector (`src/core/Reflector.ts`)
+- Quality assurance and error correction
+- Message validation and formatting
+- Execution result analysis
+
+### 3. Agent Context (`src/core/AgentContext.ts`)
+
+**Centralized state management:**
 ```typescript
-// BREAKTHROUGH: Works with FREE models that don't support function calling
-const enhancedPrompt = `
-Rules for tool usage:
+interface AgentContext {
+  readonly messages: ChatMessage[];
+  readonly tools: Record<string, Tool<any, any>>;
+  readonly providers: ProviderGroup;
+  readonly options: AgentOptions;
+  readonly state: ConversationState;
+}
+
+interface ProviderGroup {
+  readonly primary: Provider[];   // Free models tried first
+  readonly fallback: Provider[];  // Premium models for fallback
+}
+```
+
+---
+
+## 🆓 VANILLA Tool Calling Innovation
+
+**The breakthrough that democratizes AI tool calling:**
+
+### The Problem
+```typescript
+// ❌ Traditional approach - API dependent
+const response = await openai.chat.completions.create({
+  model: "gpt-4",
+  tools: [{ type: "function", function: toolSchema }]
+});
+// Fails with free models: "No endpoints found that support tool use"
+```
+
+### The VANILLA Solution
+```typescript
+// ✅ VANILLA approach - Universal compatibility
+const systemPrompt = `When you need to use a tool, output:
+TOOL_CALL: {"name": "multiply", "arguments": {"a": 15, "b": 8}}
+
+Rules:
 1. FOR SEQUENTIAL TASKS: Make ONE tool call at a time
 2. ALWAYS use actual result from previous tools
-3. Format: TOOL_CALL: {"name": "multiply", "arguments": {"a": 15, "b": 8}}
-4. Wait for tool result before making next call
-`;
+3. Wait for tool result before making next call`;
 
-// Compatible with:
-// ✅ OpenRouter free models
-// ✅ Google AI Studio  
-// ✅ ANY LLM that can follow instructions
-// ✅ Premium models (as fallback)
+// Works with ANY text model!
 ```
 
----
+### Implementation (`src/providers/openrouterVanilla.ts`)
 
-## 🛡️ Smart Reflector Enhancement
-
-### File: `src/core/Reflector.ts` (~150 LOC enhanced)
-
-Quantum-aware quality assurance:
-
-```typescript
-class Reflector {
-  async reviewQuantumExecution(result: StepResult, plan: QuantumPlan): Promise<ReflectionResult> {
-    // Enhanced reflection supporting:
-    // - Plan adherence validation
-    // - Sequential logic verification  
-    // - Self-healing trigger detection
-    // - Learning pattern identification
-  }
-
-  private validateSequentialLogic(steps: QuantumStep[]): ValidationResult {
-    // Ensures proper tool result flow:
-    // multiply(15,8) → 120 → divide(120,3) → 40 ✅
-    // NOT: multiply(15,8) → 120 → divide(15,3) → 5 ❌
-  }
-}
-```
-
----
-
-## 🚀 Quantum Agent Classes
-
-### QuantumConversationAgent
-**File:** `src/core/QuantumConversationAgent.ts`
+**Four-step process:**
+1. **Enhanced System Prompt**: Inject tool definitions and calling format
+2. **Message Enhancement**: Convert tool results back to text format
+3. **Text Parsing**: Extract tool calls using regex patterns with JSON repair
+4. **Tool Execution**: Convert back to standard tool call format
 
 ```typescript
-class QuantumConversationAgent {
-  private quantumPlanner: QuantumPlanner;
+function parseManualToolCalls(content: string): {
+  cleanedContent: string;
+  toolCalls: any[]
+} {
+  // Enhanced JSON repair strategies
+  const repairStrategies = [
+    jsonStr,                    // Original
+    jsonStr + '}',             // Add missing brace
+    jsonStr.replace(/,\s*$/, '') + '}', // Remove trailing comma
+  ];
   
-  async run(messages, tools, providers, options): Promise<QuantumResult> {
-    // QUANTUM INTELLIGENCE FLOW:
-    // 1. Analyze intent with LLM
-    // 2. Decompose with HTN principles
-    // 3. Generate execution paths with ToT
-    // 4. Execute with self-healing
-    // 5. Learn from results
+  // Sequential execution: Only process FIRST tool call
+  const toolCallMatches = content.match(/TOOL_CALL:\s*\{[^}]*\}/g);
+  if (toolCallMatches?.length > 1) {
+    console.log(`Sequential execution: Processing first of ${toolCallMatches.length} tool calls`);
   }
-}
-```
-
-### Legacy ConversationAgent
-**File:** `src/core/ConversationAgent.ts` (Maintained for compatibility)
-
-```typescript
-class ConversationAgent {
-  // 100% backwards compatible
-  // Classical planning with modern optimizations
 }
 ```
 
 ---
 
-## 📊 Quantum Performance Metrics
+## 🚀 Provider System
 
+### Provider Abstraction
 ```typescript
-interface QuantumResult extends AgentResult {
-  metrics: AgentMetrics & {
-    // Classical metrics
-    duration: number;
-    toolExecutions: number;
-    providerCalls: number;
-    
-    // Quantum-specific metrics
-    intentConfidence: number;      // Intent analysis accuracy
-    planComplexity: number;        // Task decomposition depth
-    adaptations: number;           // Self-healing activations
-    learningPatterns: string[];    // Discovered patterns
-  };
-  
-  debug?: AgentDebug & {
-    // Quantum debugging info
-    quantumMetrics: {
-      strategyType: 'sequential' | 'parallel' | 'adaptive';
-      intentAnalysis: UserIntent;
-      planSteps: QuantumStep[];
-      executionPaths: ReasoningPath[];
-      adaptations: Adaptation[];
-    };
+interface Provider {
+  id: string;
+  supportsTools: boolean;
+  chat(options: ChatOptions): Promise<ChatResult>;
+}
+```
+
+### Available Providers
+- **OpenRouter VANILLA** (`openrouterVanilla.ts`) - Free models with VANILLA tool calling
+- **Google OpenAI** (`googleOpenAI.ts`) - Google AI Studio models
+- **OpenAI** (`openai.ts`) - Premium OpenAI models
+- **Standard OpenRouter** (`openrouter.ts`) - OpenRouter API models
+
+### Provider Racing & Fallback Logic
+```typescript
+// Smart strategy implementation
+if (ctx.options.providerStrategy === 'smart') {
+  // Sequential for free models (preserve quotas)
+  return await this.smartProviderExecution(messages, ctx);
+} else if (ctx.options.enableRacing) {
+  // Racing for paid models (speed)
+  return await this.raceProviders(ctx.providers.primary, messages, ctx);
+}
+```
+
+---
+
+## 📊 Performance & Metrics
+
+### Comprehensive Tracking
+```typescript
+interface PerformanceMetrics {
+  readonly startTime: number;
+  providerCalls: number;
+  toolExecutions: number;
+  totalTokens: number;
+  costSavings: number; // Based on free vs paid model usage
+}
+```
+
+### Debug Information
+```typescript
+interface AgentResult {
+  readonly debug?: {
+    readonly plan: Plan;
+    readonly steps: number;
+    readonly reflections: number;
+    readonly providerHistory: { id: string; model?: string }[];
   };
 }
 ```
 
 ---
 
-## 🧪 Testing & Verification
+## 🧪 Testing & Reliability
 
-### Quantum Correctness Tests
+### Multi-Step Task Verification
+**The critical test that validates sequential execution:**
 ```typescript
-// File: src/examples/testCorrectAnswer.ts
-describe('Quantum Planning Correctness', () => {
-  test('Sequential Math Execution', async () => {
-    const input = "Calculate area of 15×8 rectangle, then divide by 3";
-    const result = await quantumAgent.run(input);
-    
-    expect(result.finalAnswer).toContain('40');
-    expect(result.metrics.toolExecutions).toBeGreaterThanOrEqual(2);
-    expect(result.debug.quantumMetrics.strategyType).toBe('sequential');
-  });
-});
+// Input: "Calculate area of 15×8 rectangle, then divide by 3"
+// Expected: 15×8=120, then 120÷3=40
+// Framework Result: ✅ Correct sequential execution
 ```
 
-### Universal Tool Compatibility Tests
-```typescript
-// Validates vanilla tool calling works across different models
-const freeModels = [
-  "mistralai/mistral-small-3.2-24b-instruct:free",
-  "deepseek/deepseek-r1-0528-qwen3-8b:free",
-  "models/gemini-2.0-flash-thinking-exp"
-];
-```
+### Comprehensive Test Suite
+- **82 test cases** covering core functionality
+- **Provider compatibility tests** across multiple models
+- **VANILLA tool calling validation** with free models
+- **Error handling and recovery** scenarios
 
 ---
 
-## 🎯 Migration Strategies
+## 🔧 Practical Usage
 
-### Phase 1: Zero-Breaking Migration
+### Basic Agent Usage
 ```typescript
-// Existing code continues working
 import { ConversationAgent } from "ceata";
-const agent = new ConversationAgent(); // Classical
+
+const agent = new ConversationAgent();
+const result = await agent.run(
+  messages,
+  tools,
+  { primary: [vanillaProvider], fallback: [premiumProvider] }
+);
 ```
 
-### Phase 2: Quantum Upgrade
+### Enhanced Quantum Agent
 ```typescript
-// Drop-in quantum intelligence
-import { QuantumConversationAgent } from "ceata";  
-const quantumAgent = new QuantumConversationAgent(); // Quantum
-// Same API, revolutionary planning
+import { QuantumConversationAgent } from "ceata";
+
+const quantumAgent = new QuantumConversationAgent();
+const result = await quantumAgent.run(messages, tools, providers);
+// Includes advanced planning and intent analysis
 ```
 
-### Phase 3: Full Quantum Control
+### VANILLA Provider Setup
 ```typescript
-// Direct access to quantum components
-import { QuantumPlanner, Executor, Reflector } from "ceata";
-const planner = new QuantumPlanner();
-const plan = await planner.analyzeIntent(message, context);
+import { createVanillaOpenRouterProvider } from "ceata/providers";
+
+const vanillaProvider = createVanillaOpenRouterProvider(apiKey, baseUrl, {
+  headers: {
+    "HTTP-Referer": "https://yourapp.com",
+    "X-Title": "Your App Name"
+  }
+});
 ```
 
 ---
@@ -330,61 +283,87 @@ const plan = await planner.analyzeIntent(message, context);
 ```
 src/
 ├── core/
-│   ├── QuantumPlanner.ts           # 🧠 Revolutionary 5-phase planning
-│   ├── QuantumConversationAgent.ts # 🚀 Quantum-enhanced execution
-│   ├── ConversationAgent.ts        # 📜 Legacy compatibility
-│   ├── Executor.ts                 # ⚡ Enhanced universal execution
-│   ├── Reflector.ts               # 🛡️  Quantum-aware quality assurance
-│   └── AgentContext.ts            # 📊 Enhanced state management
+│   ├── ConversationAgent.ts      # Production-ready agent
+│   ├── QuantumConversationAgent.ts # Experimental enhanced agent
+│   ├── Planner.ts                # Classical step planning
+│   ├── QuantumPlanner.ts         # Advanced intent-based planning
+│   ├── Executor.ts               # Provider racing & tool execution
+│   ├── Reflector.ts              # Quality assurance
+│   ├── AgentContext.ts           # State management
+│   ├── Provider.ts               # Provider interfaces
+│   └── Tool.ts                   # Tool definitions
 ├── providers/
-│   ├── openrouterVanilla.ts       # 🆓 FREE model optimization
-│   ├── googleOpenAI.ts            # 🧪 Experimental models
-│   └── openai.ts                  # 💰 Premium fallback
+│   ├── openrouterVanilla.ts      # VANILLA tool calling for free models
+│   ├── googleOpenAI.ts           # Google AI Studio integration
+│   ├── openai.ts                 # OpenAI API integration
+│   └── openrouter.ts             # Standard OpenRouter API
 ├── examples/
-│   ├── quantumMathAgent.ts        # 🧮 Quantum planning demo
-│   ├── testCorrectAnswer.ts       # ✅ Correctness verification
-│   ├── directToolTest.ts          # 📊 Classical vs Quantum comparison
-│   └── pipelineExample.ts         # 🏗️  Full architecture demo
+│   ├── mathAgent.ts              # Mathematical operations demo
+│   ├── quantumMathAgent.ts       # Advanced planning demo
+│   └── pipelineExample.ts        # Full architecture showcase
 └── __tests__/
-    ├── quantumPlanner.test.ts     # 🧪 Quantum intelligence tests
-    └── conversationAgent.test.ts  # 📊 Legacy compatibility tests
+    ├── conversationAgent.test.ts # Core agent testing
+    ├── vanillaToolCalling.test.ts # VANILLA approach validation
+    └── quantumPlanner.test.ts    # Advanced planning tests
 ```
 
 ---
 
-## 🌟 The Quantum Advantage
+## 🌟 The Ceată Advantage
 
-### Universal Adaptability
-- **No Domain Restrictions**: Works with math, text, APIs, databases, any tool
-- **Model Agnostic**: Compatible with free and premium models
-- **Framework Independent**: Vanilla approach works everywhere
+### Universal Compatibility
+- **No API Lock-in**: Works with any text-based LLM
+- **Free Model Support**: VANILLA tool calling works with free models
+- **Provider Agnostic**: Easy to add new AI providers
+- **Tool Independence**: Any tool can be integrated
 
-### Intelligent Planning  
-- **LLM-Powered**: Uses AI for understanding, not just execution
-- **HTN-Inspired**: Hierarchical decomposition for complex tasks
-- **ToT Reasoning**: Multiple paths evaluated for optimal execution
+### Production-Ready Reliability
+- **Error Recovery**: Automatic provider fallback
+- **Sequential Execution**: Reliable multi-step operations
+- **Memory Management**: Intelligent conversation pruning
+- **Type Safety**: Full TypeScript coverage
 
-### Self-Healing Architecture
-- **Error Recovery**: Automatic detection and correction
-- **Provider Adaptation**: Smart fallback when models fail
-- **Plan Adjustment**: Dynamic replanning based on results
+### Cost Optimization
+- **Free-First Strategy**: Try free models before paid ones
+- **Smart Provider Selection**: Use racing only when cost-effective
+- **Quota Preservation**: Sequential execution for free APIs
+- **Transparent Metrics**: Track cost savings in real-time
 
-### Production Ready
-- **Type Safe**: Full TypeScript coverage
-- **Zero Dependencies**: Pure Node.js implementation  
-- **Backwards Compatible**: Legacy code continues working
-- **Cost Optimized**: Free model preference with premium fallback
+### Developer Experience
+- **Clean Pipeline Architecture**: Separation of concerns
+- **Comprehensive Debugging**: Full execution visibility
+- **Flexible Configuration**: Customize behavior per use case
+- **Battle-Tested**: Proven through extensive testing
 
 ---
 
-## 🏆 Revolutionary Impact
+## 🎯 Real-World Impact
 
-**CEATA's Quantum Planner** represents the first universal, adaptive AI planning system that:
+**Ceata's VANILLA tool calling represents a paradigm shift:**
 
-1. **🎯 Eliminates Hardcoded Logic** - No more `if (msg.includes("math"))` patterns
-2. **🧠 Provides True Intelligence** - LLM-powered understanding and reasoning  
-3. **🔄 Self-Heals Automatically** - Adapts to failures and finds solutions
-4. **💰 Maximizes Cost Efficiency** - Uses free models intelligently
-5. **🚀 Scales Infinitely** - Works with any domain, any tool, any model
+- **Before**: Tool calling limited to expensive models with native API support
+- **After**: ANY text model can perform tool calling via prompt engineering
 
-**This is not just an architecture - it's a quantum leap in AI agent intelligence.**
+This democratizes AI capabilities and enables:
+- **Cost-effective production deployments** using free models
+- **Universal tool integration** without API dependencies  
+- **Reliable multi-step task execution** across any model
+- **Provider flexibility** without vendor lock-in
+
+The framework proves that intelligent architecture can achieve what expensive APIs cannot: **universal compatibility with reliable execution at minimal cost**.
+
+---
+
+## 🔮 Future Considerations
+
+### Scalability Patterns
+- VANILLA approach can extend to complex nested tool calls
+- Provider ecosystem can grow through standardized interfaces
+- Planning capabilities can evolve with enhanced LLM integration
+
+### Architectural Evolution
+- Additional agent types for specialized use cases
+- Enhanced provider racing with intelligent load balancing
+- Advanced tool calling patterns for complex workflows
+
+**Ceata represents the future of AI frameworks: intelligent, universal, and cost-effective.**
