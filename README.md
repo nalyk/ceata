@@ -90,7 +90,7 @@ const providers = [
 ## 📦 Quick Start
 
 ```bash
-git clone https://github.com/your-org/ceata.git
+git clone https://github.com/nalyk/ceata.git
 cd ceata
 npm install
 
