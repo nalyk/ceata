@@ -1,0 +1,33 @@
+{
+  "name": "ceata-newsroom-bot",
+  "version": "1.0.0",
+  "description": "Newsroom AI Helper Bot using Ceata multi-agent system with Telegraf v4",
+  "type": "module",
+  "main": "dist/newsroomBot.js",
+  "scripts": {
+    "build": "echo 'No build needed for JS'",
+    "start": "node newsroomBot.js",
+    "dev": "node --watch newsroomBot.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "~5.5.0"
+  },
+  "keywords": [
+    "telegram",
+    "bot", 
+    "news",
+    "ai",
+    "multi-agent",
+    "ceata",
+    "newsroom",
+    "journalism"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

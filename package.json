@@ -1,24 +1,55 @@
 {
   "name": "ceata",
   "version": "0.1.0",
+  "description": "Universal AI Agent Framework with VANILLA tool calling and multi-agent orchestration",
   "type": "module",
   "license": "MIT",
+  "keywords": ["ai", "agent", "llm", "tool-calling", "free-models", "multi-agent", "vanilla", "openrouter"],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./multi-agent": "./dist/multi-agent/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p .",
     "dev": "npm run build -- -w",
+    "clean": "rm -rf dist",
     "example": "npm run build && node dist/examples/mathAgent.js",
     "example:quantum": "npm run build && node dist/examples/quantumMathAgent.js",
     "example:chat": "npm run build && node dist/examples/chatWithTools.js",
     "example:memory": "npm run build && node dist/examples/memoryManagementExample.js",
     "example:pipeline": "npm run build && node dist/examples/pipelineExample.js",
     "example:test-correctness": "npm run build && node dist/examples/testCorrectAnswer.js",
+    "example:multi-agent": "npm run build && node dist/examples/multi-agent/quickDemo.js",
+    "example:moldova": "npm run build && node dist/examples/multi-agent/moldovaScenarios.js",
+    "example:telegram-bot": "npm run build && cd examples/telegram-bot && npm install && npm run build && npm start",
     "test": "npm run build && node --experimental-test-module-mocks --test dist/__tests__/*.js",
+    "test:unit": "npm run build && node --experimental-test-module-mocks --test dist/__tests__/conversationAgent.test.js dist/__tests__/vanillaToolCalling.test.js dist/__tests__/providerCreation.test.js",
     "test:quantum": "npm run build && node --experimental-test-module-mocks --test dist/__tests__/quantumPlanner.test.js",
     "test:vanilla": "npm run build && node --experimental-test-module-mocks --test dist/__tests__/vanillaToolCalling.test.js",
-    "test:integration": "npm run build && node --experimental-test-module-mocks --test dist/__tests__/quantumIntegration.test.js"
+    "test:integration": "npm run build && node --experimental-test-module-mocks --test dist/__tests__/quantumIntegration.test.js",
+    "test:examples": "npm run example && npm run example:quantum && npm run example:multi-agent",
+    "validate": "npm run build && npm run test && npm run test:examples"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "~5.5.0"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/ceata.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ceata/issues"
+  },
+  "homepage": "https://github.com/yourusername/ceata#readme"
 }

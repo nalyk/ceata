@@ -1,957 +1,683 @@
 # Ceata Usage Guide
 
-> **Ceata** (pronounced /ˈt͡ʃe.a.ta/) is the Romanian word for a coordinated group. The AI agents created with this framework form exactly such a **ceată**: independent minds working towards a common goal.
-
-Complete guide to building intelligent AI agents with Ceata's universal framework for cost-effective, production-ready AI applications.
+> Complete guide for using the Ceata universal AI agent framework with VANILLA tool calling and multi-agent orchestration.
 
 ---
 
 ## 🚀 Quick Start
 
-### Installation & Setup
+### Installation
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd agentic
+git clone <repository>
+cd ceata
 npm install
 npm run build
 ```
 
-### Available NPM Scripts
+### Environment Setup
 
 ```bash
-# Development
-npm run build              # Compile TypeScript to dist/
-npm run dev               # Watch mode compilation
-npm test                  # Run all tests
+# Required for free models
+OPENROUTER_API_KEY=sk-or-v1-xxx
 
-# Working Examples  
-npm run example           # Basic math agent (ConversationAgent)
-npm run example:quantum   # Advanced quantum planning agent
-npm run example:chat      # Chat with tools example
-npm run example:memory    # Memory management demo
-npm run example:pipeline  # Pipeline architecture demo
-npm run example:test-correctness  # Correctness verification
-
-# Testing Specific Components
-npm run test:quantum      # Quantum planner tests
-npm run test:vanilla      # VANILLA tool calling tests
-npm run test:integration  # Integration tests
+# Optional fallbacks
+GOOGLE_API_KEY=xxx
+OPENAI_API_KEY=sk-xxx
 ```
 
-### Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
-# Required for free models (VANILLA tool calling)
-OPENROUTER_API_KEY=your_openrouter_key_here
-GOOGLE_API_KEY=your_google_ai_key_here
-
-# Optional premium fallbacks
-OPENAI_API_KEY=your_openai_key_here
-
-# Configuration overrides (optional)
-OPENROUTER_DEFAULT_MODEL=mistralai/mistral-small-3.2-24b-instruct:free
-GOOGLE_DEFAULT_MODEL=models/gemini-2.0-flash-thinking-exp
-OPENAI_DEFAULT_MODEL=gpt-4o-mini
-DEFAULT_TIMEOUT_MS=30000
-DEFAULT_MAX_TOKENS=4000
-```
-
-### Your First Agent
+### Basic Usage
 
 ```typescript
-import { ConversationAgent, defineTool } from "./src/index.js";
-import { createVanillaOpenRouterProvider } from "./src/providers/openrouterVanilla.js";
-import { googleOpenAI } from "./src/providers/googleOpenAI.js";
+import { runAgent, defineTool, createVanillaOpenRouterProvider } from 'ceata';
 
-// Define a simple tool
-const addTool = defineTool({
-  name: "add",
-  description: "Add two numbers together",
+// Define a tool
+const calculator = defineTool({
+  name: 'add',
+  description: 'Add two numbers',
   parameters: {
-    type: "object",
+    type: 'object',
     properties: {
-      a: { type: "number", description: "First number" },
-      b: { type: "number", description: "Second number" },
+      a: { type: 'number' },
+      b: { type: 'number' }
     },
-    required: ["a", "b"],
+    required: ['a', 'b']
+  }
+}, async ({ a, b }) => a + b);
+
+// Run with free models
+const result = await runAgent(
+  [{ role: 'user', content: 'Add 15 and 27' }],
+  { add: calculator },
+  {
+    primary: [createVanillaOpenRouterProvider()],
+    fallback: []
   },
-  execute: async ({ a, b }: { a: number; b: number }) => {
-    const result = a + b;
-    console.log(`🧮 Adding ${a} + ${b} = ${result}`);
-    return result;
-  },
-});
-
-// Create VANILLA provider for free models
-const vanillaProvider = createVanillaOpenRouterProvider(undefined, undefined, {
-  headers: {
-    "HTTP-Referer": "https://example.com",
-    "X-Title": "My Ceata Agent",
-  },
-});
-
-// Set up providers with free-first strategy
-const providerGroup = {
-  primary: [vanillaProvider, googleOpenAI],
-  fallback: [] // Add paid providers here if needed
-};
-
-const providerModels = {
-  [vanillaProvider.id]: "mistralai/mistral-small-3.2-24b-instruct:free",
-  [googleOpenAI.id]: "models/gemini-2.0-flash-thinking-exp"
-};
-
-const tools = { add: addTool };
-
-// Execute with the agent
-const agent = new ConversationAgent();
-const result = await agent.run(
-  [{ role: "user", content: "What is 5 plus 7?" }],
-  tools,
-  providerGroup,
-  { maxSteps: 5, providerStrategy: 'smart' },
-  providerModels
+  { maxSteps: 5 }
 );
-
-console.log(result.messages[result.messages.length - 1].content);
-// Output: "Using the add tool: 5 + 7 = 12"
 ```
 
 ---
 
-## 🧮 Working Example: Math Agent
+## 🔧 Provider Configuration
 
-This is the proven example from `src/examples/mathAgent.ts` that demonstrates VANILLA tool calling with free models:
-
-### Complete Math Agent Implementation
+### VANILLA Tool Calling (Free Models)
 
 ```typescript
-import { defineTool } from "../core/Tool.js";
-import { ConversationAgent } from "../core/ConversationAgent.js";
-import { logger } from "../core/logger.js";
-import { createVanillaOpenRouterProvider } from "../providers/openrouterVanilla.js";
-import { googleOpenAI } from "../providers/googleOpenAI.js";
-import { openai } from "../providers/openai.js";
-import { config } from "../config/index.js";
+import { createVanillaOpenRouterProvider } from 'ceata';
 
-// Create multiple VANILLA providers for redundancy
-const vanillaOpenRouter1 = createVanillaOpenRouterProvider(undefined, undefined, {
-  headers: {
-    "HTTP-Referer": "https://example.com",
-    "X-Title": "Ceata Math Agent",
-  },
+const vanillaProvider = createVanillaOpenRouterProvider({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: 'mistralai/mistral-small-3.2-24b-instruct:free'
 });
+```
 
-const vanillaOpenRouter2 = createVanillaOpenRouterProvider(undefined, undefined, {
-  headers: {
-    "HTTP-Referer": "https://example.com",
-    "X-Title": "Ceata Math Agent",
-  },
-});
+**Supported Free Models:**
+- `mistralai/mistral-small-3.2-24b-instruct:free`
+- `deepseek/deepseek-r1-0528-qwen3-8b:free`
+- `qwen/qwen-2.5-coder-32b-instruct`
 
-// Define comprehensive math tools
-const addTool = defineTool({
-  name: "add",
-  description: "Add two numbers together",
-  parameters: {
-    type: "object",
-    properties: {
-      a: { type: "number", description: "First number" },
-      b: { type: "number", description: "Second number" },
-    },
-    required: ["a", "b"],
-  },
-  execute: async ({ a, b }: { a: number; b: number }) => {
-    const result = a + b;
-    console.log(`🧮 Adding ${a} + ${b} = ${result}`);
-    return result;
-  },
-});
+### Standard Providers
 
-const multiplyTool = defineTool({
-  name: "multiply",
-  description: "Multiply two numbers together",
-  parameters: {
-    type: "object",
-    properties: {
-      a: { type: "number", description: "First number" },
-      b: { type: "number", description: "Second number" },
-    },
-    required: ["a", "b"],
-  },
-  execute: async ({ a, b }: { a: number; b: number }) => {
-    const result = a * b;
-    console.log(`🧮 Multiplying ${a} × ${b} = ${result}`);
-    return result;
-  },
-});
+```typescript
+import { 
+  createOpenRouterProvider,
+  createGoogleOpenAIProvider,
+  createOpenAIProvider 
+} from 'ceata';
 
-const divideTool = defineTool({
-  name: "divide",
-  description: "Divide two numbers",
-  parameters: {
-    type: "object",
-    properties: {
-      a: { type: "number", description: "Dividend (number to be divided)" },
-      b: { type: "number", description: "Divisor (number to divide by)" },
-    },
-    required: ["a", "b"],
-  },
-  execute: async ({ a, b }: { a: number; b: number }) => {
-    if (b === 0) {
-      throw new Error("Cannot divide by zero");
-    }
-    const result = a / b;
-    console.log(`🧮 Dividing ${a} ÷ ${b} = ${result}`);
-    return result;
-  },
-});
-
-// Configure providers with intelligent fallback logic
-const providers = [
-  // Primary providers (FREE - VANILLA tool calling)
-  { p: vanillaOpenRouter1, model: "mistralai/mistral-small-3.2-24b-instruct:free", priority: "primary" },
-  { p: vanillaOpenRouter2, model: "deepseek/deepseek-r1-0528-qwen3-8b:free", priority: "primary" },
-  { p: googleOpenAI, model: config.providers.google.defaultModel, priority: "primary" },
-  
-  // Fallback provider (PAID - only if free options exhausted)
-  { p: openai, model: config.providers.openai.defaultModel, priority: "fallback" },
-];
-
-const tools = {
-  add: addTool,
-  multiply: multiplyTool,
-  divide: divideTool,
+const providers = {
+  primary: [
+    createVanillaOpenRouterProvider(), // Free first
+    createGoogleOpenAIProvider(),     // Fast fallback
+  ],
+  fallback: [
+    createOpenAIProvider(),           // Reliable backup
+    createOpenRouterProvider()        // Paid OpenRouter
+  ]
 };
+```
 
-// Enable debug output
-logger.setLevel('debug');
+---
 
-// Convert provider configuration to agent format
-const providerGroup = {
-  primary: providers.filter(p => p.priority === 'primary').map(p => p.p),
-  fallback: providers.filter(p => p.priority === 'fallback').map(p => p.p)
-};
+## 🛠️ Tool Definition
 
-const providerModels: Record<string, string> = {};
-providers.forEach(pc => {
-  providerModels[pc.p.id] = pc.model;
+### Basic Tool
+
+```typescript
+import { defineTool } from 'ceata';
+
+const weatherTool = defineTool({
+  name: 'get_weather',
+  description: 'Get current weather for a location',
+  parameters: {
+    type: 'object',
+    properties: {
+      location: { type: 'string', description: 'City name' }
+    },
+    required: ['location']
+  }
+}, async ({ location }) => {
+  // Your implementation
+  return `Weather in ${location}: Sunny, 22°C`;
 });
+```
 
-// Execute the critical test case
+### Async Tool with Error Handling
+
+```typescript
+const complexTool = defineTool({
+  name: 'api_call',
+  description: 'Make external API call',
+  parameters: {
+    type: 'object',
+    properties: {
+      endpoint: { type: 'string' },
+      data: { type: 'object' }
+    },
+    required: ['endpoint']
+  }
+}, async ({ endpoint, data }) => {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await response.json();
+  } catch (error) {
+    throw new Error(`API call failed: ${error.message}`);
+  }
+});
+```
+
+---
+
+## 🤖 Agent Usage
+
+### ConversationAgent (Production)
+
+```typescript
+import { ConversationAgent } from 'ceata';
+
 const agent = new ConversationAgent();
 
-const messages = [
-  {
-    role: "system" as const,
-    content: "You are a helpful math assistant. You MUST use the available tools to perform ALL calculations. Never calculate manually. Use this format: TOOL_CALL: {\"name\": \"multiply\", \"arguments\": {\"a\": 15, \"b\": 8}}. For multi-step problems, make one tool call at a time, wait for results, then continue.",
-  },
-  {
-    role: "user" as const,
-    content: "I need to calculate the area of a rectangle that is 15 units long and 8 units wide. Then, I want to know what happens if I divide that area by 3.",
-  },
-];
-
 const result = await agent.run(
-  messages,
-  tools,
-  providerGroup,
-  { maxSteps: 10, providerStrategy: 'smart' },
-  providerModels
+  [
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: 'Calculate 15 × 8 ÷ 3' }
+  ],
+  { multiply, divide },
+  providers,
+  {
+    maxSteps: 10,
+    providerStrategy: 'smart',
+    enableDebug: true
+  }
 );
-```
 
-### Running the Math Agent
-
-```bash
-# Try the working math agent example
-npm run example
-```
-
-### Expected Output
-
-```
-🚀 Starting Math Agent Example - VANILLA TOOL CALLING
-📋 Available tools: add, multiply, divide
-🧠 VANILLA Strategy: Prompt engineering + text parsing for FREE models
-💰 Mistral-Small-3.2:free → DeepSeek-R1:free → Google OpenAI → OpenAI (only if needed)
-🛡️  VANILLA tool calling: Works with ANY model, even free ones!
-🔧 Enhanced multi-step task detection + Manual tool parsing
-==================================================
-
-💭 User question: I need to calculate the area of a rectangle that is 15 units long and 8 units wide. Then, I want to know what happens if I divide that area by 3.
-
-🤖 Agent thinking...
-
-🧮 Multiplying 15 × 8 = 120
-🧮 Dividing 120 ÷ 3 = 40
-
-==================================================
-📝 Final conversation:
-👤 user: I need to calculate the area of a rectangle that is 15 units long and 8 units wide. Then, I want to know what happens if I divide that area by 3.
-🤖 assistant: I'll help you calculate this step by step.
-
-First, let me calculate the area of the rectangle:
-🔧 tool: multiply(15, 8) = 120
-
-Now let me divide that area by 3:
-🔧 tool: divide(120, 3) = 40
-
-The area of a 15×8 rectangle is 120 square units. When you divide that area by 3, you get 40 square units.
-
-🔧 Provider history:
-Step 1: openrouter-vanilla (mistralai/mistral-small-3.2-24b-instruct:free)
-Step 2: openrouter-vanilla (mistralai/mistral-small-3.2-24b-instruct:free)
-```
-
-**✅ Result: Perfect sequential execution with correct answer (40)**
-
-### Debugging the Output
-
-```typescript
-// Enable debug mode to see execution details
-logger.setLevel('debug');
-
-// Examine the result
-if (result.debug) {
-  console.log("📊 Execution Analysis:");
-  console.log(`Steps: ${result.debug.steps}`);
-  console.log(`Reflections: ${result.debug.reflections}`);
-  console.log(`Provider History:`, result.debug.providerHistory);
-}
-
-// Performance metrics
-console.log("⚡ Performance Metrics:");
+console.log(result.messages);
 console.log(`Duration: ${result.metrics.duration}ms`);
-console.log(`Tool Executions: ${result.metrics.toolExecutions}`);
-console.log(`Cost Savings: $${result.metrics.costSavings}`);
+console.log(`Cost savings: $${result.metrics.costSavings}`);
 ```
 
----
-
-## 🧠 Advanced Agent: Quantum Planning
-
-The `QuantumConversationAgent` provides enhanced planning for complex tasks:
-
-### Quantum Math Agent Example
+### QuantumConversationAgent (Advanced)
 
 ```typescript
-import { QuantumConversationAgent } from "ceata/core/QuantumConversationAgent";
+import { QuantumConversationAgent } from 'ceata';
 
 const quantumAgent = new QuantumConversationAgent();
 
 const result = await quantumAgent.run(
-  messages,
+  [{ role: 'user', content: 'Plan a complex business strategy' }],
   tools,
   providers,
-  { maxSteps: 15, enableDebug: true }
+  {
+    maxSteps: 15,
+    enableQuantumFeatures: true,
+    adaptivePlanning: true
+  }
 );
 
-// Quantum-specific debug information
-if (result.debug?.quantumMetrics) {
-  console.log("🔮 Quantum Insights:");
-  console.log(`Intent Complexity: ${result.debug.quantumMetrics.intentComplexity}`);
-  console.log(`Strategy Type: ${result.debug.quantumMetrics.strategyType}`);
-  console.log(`Hypotheses Generated: ${result.debug.quantumMetrics.hypothesesGenerated}`);
-  console.log(`Confidence Score: ${result.debug.quantumMetrics.confidenceScore}`);
+// Access quantum metrics
+console.log('Planning depth:', result.debug?.quantumMetrics?.planningDepth);
+console.log('Adaptations made:', result.debug?.quantumMetrics?.adaptationCount);
+```
+
+---
+
+## 🎭 Multi-Agent System
+
+### Moldova Multi-Agent Setup
+
+```typescript
+import { createMoldovaMultiAgentSystem } from 'ceata/multi-agent';
+
+const { coordinator, registry, agents } = createMoldovaMultiAgentSystem();
+
+console.log(`Initialized ${agents.length} specialized agents:`);
+agents.forEach(agent => {
+  const caps = agent.getCapabilities();
+  console.log(`- ${caps.id}: ${caps.domains.join(', ')}`);
+});
+```
+
+### Basic Coordination
+
+```typescript
+// Simple query (UDP mode)
+const result1 = await coordinator.coordinate(
+  "Vremea în Chișinău?",
+  { weather_api: weatherTool },
+  providers
+);
+
+// Complex query (Orchestra mode)
+const result2 = await coordinator.coordinate(
+  "Vreau vremea în Chișinău și bilet la București și informații despre schimbarea buletinului",
+  { weather_api: weatherTool, travel_search: travelTool, gov_database: govTool },
+  providers
+);
+```
+
+### Manual Mode Override
+
+```typescript
+// Force Orchestra mode for comprehensive analysis
+const result = await coordinator.coordinate(
+  userInput,
+  tools,
+  providers,
+  { coordinationMode: 'orchestra' }
+);
+
+// Force UDP mode for speed
+const result = await coordinator.coordinate(
+  userInput,
+  tools,
+  providers,
+  { coordinationMode: 'udp' }
+);
+```
+
+---
+
+## ⚙️ Configuration Options
+
+### Agent Options
+
+```typescript
+interface AgentOptions {
+  maxSteps?: number;                    // Default: 8
+  maxHistoryLength?: number;            // Default: 50
+  enableDebug?: boolean;                // Default: false
+  providerStrategy?: 'smart' | 'racing' | 'sequential'; // Default: 'smart'
+  enableRacing?: boolean;               // Default: true
+  timeoutMs?: number;                   // Default: 120000
+  enableQuantumFeatures?: boolean;      // Default: false
+  adaptivePlanning?: boolean;           // Default: false
 }
 ```
 
-### Quantum Output Example
+### Provider Strategies
 
+#### Smart Strategy (Recommended)
+```typescript
+const options = {
+  providerStrategy: 'smart',
+  enableRacing: true
+};
+
+// Behavior:
+// 1. Sequential execution for free providers (preserve quotas)
+// 2. Racing for paid providers (optimize speed)
+// 3. Automatic fallback on failures
 ```
-🔮 Quantum Planning Active
-📊 Intent Analysis: sequential_math (confidence: 0.95)
-🌟 Strategy Selected: step_by_step_execution
-🎯 Plan: Calculate area → Divide result → Present answer
 
-🧮 Multiplying 15 × 8 = 120
-🧮 Dividing 120 ÷ 3 = 40
+#### Racing Strategy
+```typescript
+const options = {
+  providerStrategy: 'racing',
+  enableRacing: true
+};
 
-🔮 Quantum Insights:
-Intent Complexity: high
-Strategy Type: sequential
-Hypotheses Generated: 3
-Confidence Score: 0.95
+// Behavior: All providers compete simultaneously
+// Use for: Low-latency requirements, sufficient budget
+```
+
+#### Sequential Strategy
+```typescript
+const options = {
+  providerStrategy: 'sequential',
+  enableRacing: false
+};
+
+// Behavior: Try providers one by one
+// Use for: Maximum cost control, debugging
 ```
 
 ---
 
-## 🆓 VANILLA Tool Calling: The Innovation
+## 🔍 Debugging & Monitoring
 
-### What Makes VANILLA Special
-
-VANILLA tool calling enables ANY language model to use tools through prompt engineering:
+### Debug Output
 
 ```typescript
-// ❌ Traditional approach - FAILS with free models
-const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-  body: JSON.stringify({
-    model: "mistralai/mistral-small-3.2-24b-instruct:free",
-    tools: [{ name: "multiply", ... }] // Returns "No endpoints found that support tool use"
-  })
+const result = await agent.run(messages, tools, providers, {
+  enableDebug: true
 });
 
-// ✅ VANILLA approach - WORKS with any model
-const vanillaProvider = createVanillaOpenRouterProvider();
-// Uses prompt engineering + text parsing to enable tool calling
-```
-
-### How VANILLA Works
-
-1. **Enhanced System Prompt**: Teaches models the tool calling format
-2. **Text Parsing**: Extracts tool calls from model output  
-3. **JSON Repair**: Fixes common formatting issues
-4. **Sequential Execution**: Ensures proper step-by-step execution
-
-```typescript
-// The magic prompt that enables tool calling
-const systemPrompt = `
-When you need to use a tool, output exactly:
-TOOL_CALL: {"name": "multiply", "arguments": {"a": 15, "b": 8}}
-
-CRITICAL RULES:
-1. FOR SEQUENTIAL TASKS: Make ONE tool call at a time
-2. ALWAYS use actual result from previous tools
-3. Wait for tool result before making next call
-`;
-```
-
----
-
-## 🔧 Tool Development Patterns
-
-### Basic Tool Pattern
-
-```typescript
-const myTool = defineTool({
-  name: "tool_name",
-  description: "Clear description of what this tool does",
-  parameters: {
-    type: "object",
-    properties: {
-      param1: { type: "string", description: "Parameter description" },
-      param2: { type: "number", description: "Another parameter" },
-    },
-    required: ["param1"],
-  },
-  execute: async (args) => {
-    // Tool implementation
-    console.log(`🔧 Executing tool with:`, args);
-    return "result";
-  },
-});
-```
-
-### Multi-Tool Agent Pattern
-
-```typescript
-// Create a comprehensive tool suite
-const tools = {
-  // Math tools
-  add: addTool,
-  multiply: multiplyTool,
-  divide: divideTool,
-  
-  // Text tools
-  uppercase: defineTextTool(),
-  lowercase: defineTextTool(),
-  
-  // API tools
-  fetchData: defineApiTool(),
-  sendNotification: defineNotificationTool(),
-};
-
-// Configure agent for multiple tool types
-const agent = new ConversationAgent();
-const result = await agent.run(messages, tools, providers);
-```
-
-### Error Handling in Tools
-
-```typescript
-const safeDivideTool = defineTool({
-  name: "safe_divide",
-  description: "Safely divide two numbers with error handling",
-  parameters: {
-    type: "object",
-    properties: {
-      dividend: { type: "number", description: "Number to be divided" },
-      divisor: { type: "number", description: "Number to divide by" },
-    },
-    required: ["dividend", "divisor"],
-  },
-  execute: async ({ dividend, divisor }) => {
-    try {
-      if (divisor === 0) {
-        return { error: "Cannot divide by zero", result: null };
-      }
-      
-      const result = dividend / divisor;
-      console.log(`🧮 ${dividend} ÷ ${divisor} = ${result}`);
-      
-      return { result, error: null };
-    } catch (error) {
-      console.error(`❌ Division error:`, error);
-      return { error: error.message, result: null };
-    }
-  },
-});
-```
-
----
-
-## 🚀 Provider Strategies
-
-### Free-First Strategy (Recommended)
-
-```typescript
-const freeFirstProviders = {
-  primary: [
-    // FREE models tried first
-    createVanillaOpenRouterProvider(undefined, undefined, {
-      headers: { "HTTP-Referer": "https://yourapp.com" }
-    }),
-    googleOpenAI,
-  ],
-  fallback: [
-    // Paid models only when free quotas exhausted
-    openai,
-  ]
-};
-
-const options = {
-  providerStrategy: 'smart' as const, // Sequential for free, racing for paid
-  maxSteps: 10,
-};
-```
-
-### High-Performance Strategy
-
-```typescript
-const performanceProviders = {
-  primary: [
-    // Racing multiple paid providers for speed
-    openai,
-    anthropic,
-    googlePaid,
-  ],
-  fallback: []
-};
-
-const options = {
-  providerStrategy: 'racing' as const,
-  enableRacing: true,
-  maxSteps: 5,
-};
-```
-
-### Quota-Conscious Strategy
-
-```typescript
-const quotaProviders = {
-  primary: [
-    vanillaProvider1,
-    vanillaProvider2,
-    vanillaProvider3,
-  ],
-  fallback: []
-};
-
-const options = {
-  providerStrategy: 'sequential' as const, // One at a time
-  maxSteps: 15,
-};
-```
-
----
-
-## 📊 Debugging & Monitoring
-
-### Enable Debug Mode
-
-```typescript
-const debugOptions = {
-  enableDebug: true,
-  maxSteps: 10,
-};
-
-const result = await agent.run(messages, tools, providers, debugOptions);
-
-// Examine debug information
-if (result.debug) {
-  console.log("📊 Execution Analysis:");
-  console.log(`Steps: ${result.debug.steps}`);
-  console.log(`Reflections: ${result.debug.reflections}`);
-  console.log(`Provider History:`, result.debug.providerHistory);
-}
+// Access debug information
+console.log('Plan:', result.debug?.plan);
+console.log('Steps executed:', result.debug?.steps);
+console.log('Provider history:', result.debug?.providerHistory);
 ```
 
 ### Performance Metrics
 
 ```typescript
-// Available in all results
-console.log("⚡ Performance Metrics:");
+console.log('Execution metrics:');
 console.log(`Duration: ${result.metrics.duration}ms`);
-console.log(`Provider Calls: ${result.metrics.providerCalls}`);
-console.log(`Tool Executions: ${result.metrics.toolExecutions}`);
-console.log(`Cost Savings: $${result.metrics.costSavings.toFixed(4)}`);
+console.log(`Provider calls: ${result.metrics.providerCalls}`);
+console.log(`Tool executions: ${result.metrics.toolExecutions}`);
+console.log(`Cost savings: $${result.metrics.costSavings}`);
 console.log(`Efficiency: ${result.metrics.efficiency} ops/sec`);
 ```
 
-### Logging Configuration
+### Error Handling
 
 ```typescript
-import { logger } from "ceata";
-
-// Set logging level for development
-logger.setLevel('debug');
-
-// View detailed execution flow
-// Output: "🔧 Step 1 executed by: openrouter-vanilla (mistral-small-free)"
-//         "🧮 Multiplying 15 × 8 = 120"
-//         "📊 Sequential execution: Processing first of 2 tool calls"
-```
-
----
-
-## 🧪 Testing Your Agents
-
-### Unit Testing Tools
-
-```typescript
-import { describe, test, expect } from 'node:test';
-
-describe('Math Agent', () => {
-  test('Sequential Math Execution', async () => {
-    const messages = [
-      {
-        role: "user" as const,
-        content: "Calculate area of 15×8 rectangle, then divide by 3"
-      }
-    ];
-
-    const result = await agent.run(messages, tools, providers);
-    
-    // Verify correct execution
-    expect(result.messages.length).toBeGreaterThan(1);
-    expect(result.metrics.toolExecutions).toBe(2);
-    
-    // Check final answer contains expected result
-    const finalMessage = result.messages[result.messages.length - 1];
-    expect(finalMessage.content).toContain('40');
-  });
-});
-```
-
-### Integration Testing
-
-```typescript
-describe('Provider Integration', () => {
-  test('VANILLA Tool Calling with Free Models', async () => {
-    const vanillaProvider = createVanillaOpenRouterProvider();
-    const providers = { primary: [vanillaProvider], fallback: [] };
-    
-    const result = await agent.run(simpleMessages, tools, providers);
-    
-    // Verify VANILLA approach worked
-    expect(result.debug?.providerHistory[0].id).toBe('openrouter-vanilla');
-    expect(result.metrics.costSavings).toBeGreaterThan(0);
-  });
-});
-```
-
-### Performance Testing
-
-```typescript
-describe('Performance Benchmarks', () => {
-  test('Free vs Paid Model Speed', async () => {
-    const freeProviders = { primary: [vanillaProvider], fallback: [] };
-    const paidProviders = { primary: [openai], fallback: [] };
-    
-    const freeResult = await agent.run(messages, tools, freeProviders);
-    const paidResult = await agent.run(messages, tools, paidProviders);
-    
-    console.log(`Free model time: ${freeResult.metrics.duration}ms`);
-    console.log(`Paid model time: ${paidResult.metrics.duration}ms`);
-    console.log(`Cost savings: $${freeResult.metrics.costSavings}`);
-  });
-});
-```
-
----
-
-## 🔄 Real-World Examples
-
-### Customer Support Agent
-
-```typescript
-const supportTools = {
-  searchKB: defineTool({
-    name: "search_knowledge_base",
-    description: "Search company knowledge base for answers",
-    parameters: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Search query" },
-      },
-      required: ["query"],
-    },
-    execute: async ({ query }) => {
-      // Search implementation
-      return `Found relevant articles for: ${query}`;
-    },
-  }),
-  
-  createTicket: defineTool({
-    name: "create_ticket",
-    description: "Create support ticket for complex issues",
-    parameters: {
-      type: "object",
-      properties: {
-        title: { type: "string", description: "Ticket title" },
-        description: { type: "string", description: "Issue description" },
-        priority: { type: "string", enum: ["low", "medium", "high"] },
-      },
-      required: ["title", "description"],
-    },
-    execute: async ({ title, description, priority = "medium" }) => {
-      // Ticket creation logic
-      return `Ticket #12345 created: ${title}`;
-    },
-  }),
-};
-
-// Use free models for cost-effective support
-const supportAgent = new ConversationAgent();
-const result = await supportAgent.run(
-  customerMessages,
-  supportTools,
-  freeFirstProviders
-);
-```
-
-### Data Analysis Agent
-
-```typescript
-const analysisTools = {
-  queryDatabase: defineTool({
-    name: "query_database",
-    description: "Execute SQL query on the database",
-    parameters: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "SQL query to execute" },
-      },
-      required: ["query"],
-    },
-    execute: async ({ query }) => {
-      // Database query implementation
-      return "Query results: [data...]";
-    },
-  }),
-  
-  generateChart: defineTool({
-    name: "generate_chart",
-    description: "Create a chart from data",
-    parameters: {
-      type: "object",
-      properties: {
-        data: { type: "array", description: "Data to chart" },
-        type: { type: "string", enum: ["bar", "line", "pie"] },
-      },
-      required: ["data", "type"],
-    },
-    execute: async ({ data, type }) => {
-      // Chart generation logic
-      return `Generated ${type} chart with ${data.length} data points`;
-    },
-  }),
-};
-
-// Use Quantum agent for complex analysis
-const analysisAgent = new QuantumConversationAgent();
-const result = await analysisAgent.run(
-  analysisMessages,
-  analysisTools,
-  providers,
-  { maxSteps: 20, enableDebug: true }
-);
-```
-
----
-
-## 💡 Best Practices
-
-### 1. **Free-First Development**
-Always start with free models and add paid fallbacks:
-
-```typescript
-const providers = {
-  primary: [vanillaOpenRouter, googleOpenAI],
-  fallback: [openai] // Only when needed
-};
-```
-
-### 2. **Clear Tool Descriptions**
-Write descriptive tool names and clear parameter descriptions:
-
-```typescript
-const tool = defineTool({
-  name: "calculate_mortgage_payment", // Clear, specific name
-  description: "Calculate monthly mortgage payment including principal, interest, taxes, and insurance",
-  parameters: {
-    properties: {
-      principal: { type: "number", description: "Loan amount in dollars" },
-      interestRate: { type: "number", description: "Annual interest rate as decimal (e.g., 0.05 for 5%)" },
-    }
-  }
-});
-```
-
-### 3. **Sequential Task Design**
-Design multi-step tasks to work sequentially:
-
-```typescript
-// ✅ Good: Sequential steps
-"First calculate the area, then divide by 3"
-
-// ❌ Avoid: Parallel operations
-"Calculate area and also check if the result is prime"
-```
-
-### 4. **Error Handling**
-Always include proper error handling in tools:
-
-```typescript
-execute: async (args) => {
-  try {
-    const result = await performOperation(args);
-    return { success: true, data: result };
-  } catch (error) {
-    console.error(`Tool error:`, error);
-    return { success: false, error: error.message };
+try {
+  const result = await agent.run(messages, tools, providers);
+} catch (error) {
+  if (error.message.includes('All providers failed')) {
+    console.log('Provider issue - check API keys and quotas');
+  } else if (error.message.includes('Tool execution failed')) {
+    console.log('Tool issue - check tool implementation');
+  } else {
+    console.log('Unexpected error:', error.message);
   }
 }
 ```
 
-### 5. **Debug During Development**
-Use debug mode to understand execution flow:
+---
+
+## 🚀 Performance Optimization
+
+### Free Model Optimization
 
 ```typescript
-const devOptions = {
-  enableDebug: true,
-  providerStrategy: 'sequential' as const, // Easier to debug
+// Optimize for free models
+const optimizedProviders = {
+  primary: [
+    createVanillaOpenRouterProvider({
+      model: 'mistralai/mistral-small-3.2-24b-instruct:free',
+      maxRetries: 2,
+      timeoutMs: 30000
+    }),
+    createVanillaOpenRouterProvider({
+      model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
+      maxRetries: 1,
+      timeoutMs: 20000
+    })
+  ],
+  fallback: [
+    createGoogleOpenAIProvider() // Fast paid fallback
+  ]
 };
+```
+
+### Memory Management
+
+```typescript
+const options = {
+  maxHistoryLength: 30, // Reduce for longer conversations
+  maxSteps: 6,          // Limit steps for simple tasks
+};
+```
+
+### Tool Call Optimization
+
+```typescript
+// Keep tools simple and fast
+const fastTool = defineTool({
+  name: 'quick_calc',
+  description: 'Fast calculation',
+  parameters: { /* minimal schema */ }
+}, async (args) => {
+  // Synchronous or very fast async operation
+  return result;
+});
 ```
 
 ---
 
-## 🎯 Production Deployment
+## 🏭 Production Deployment
 
-### Environment Setup
+### Environment Configuration
 
 ```bash
-# Production .env
-OPENROUTER_API_KEY=prod_key_here
-GOOGLE_API_KEY=prod_key_here
-OPENAI_API_KEY=fallback_key_here
+# Production environment
+NODE_ENV=production
 
-# Performance tuning
-DEFAULT_TIMEOUT_MS=30000
-OPENROUTER_TIMEOUT_MS=25000
-DEFAULT_MAX_TOKENS=4000
+# Provider keys
+OPENROUTER_API_KEY=sk-or-v1-xxx
+GOOGLE_API_KEY=xxx
+OPENAI_API_KEY=sk-xxx
+
+# Optional: Model preferences
+DEFAULT_FREE_MODEL=mistralai/mistral-small-3.2-24b-instruct:free
+DEFAULT_PAID_MODEL=gpt-4o-mini
 ```
 
-### Production Configuration
+### Production Agent Setup
 
 ```typescript
+import { ConversationAgent, createVanillaOpenRouterProvider } from 'ceata';
+
 const productionAgent = new ConversationAgent();
 
 const productionProviders = {
   primary: [
-    createVanillaOpenRouterProvider(undefined, undefined, {
-      headers: {
-        "HTTP-Referer": "https://yourproductionapp.com",
-        "X-Title": "Your Production App",
-      },
-    }),
-    googleOpenAI,
+    createVanillaOpenRouterProvider(), // Cost optimization
+    createGoogleOpenAIProvider(),     // Reliability
   ],
-  fallback: [openai]
+  fallback: [
+    createOpenAIProvider()            // Ultimate fallback
+  ]
 };
 
 const productionOptions = {
-  maxSteps: 10,
-  maxHistoryLength: 20,
-  providerStrategy: 'smart' as const,
-  enableDebug: false, // Disable in production
-  timeoutMs: 30000,
+  maxSteps: 8,
+  maxHistoryLength: 50,
+  providerStrategy: 'smart',
+  timeoutMs: 60000,
+  enableDebug: false
 };
 ```
 
-### Monitoring & Alerting
+### Circuit Breaker Pattern
 
 ```typescript
-const result = await agent.run(messages, tools, providers, options);
+import { CircuitBreaker } from 'ceata/multi-agent';
 
-// Log metrics for monitoring
-console.log(JSON.stringify({
-  timestamp: new Date().toISOString(),
-  duration: result.metrics.duration,
-  toolExecutions: result.metrics.toolExecutions,
-  costSavings: result.metrics.costSavings,
-  providerUsed: result.debug?.providerHistory[0]?.id,
-}));
+const circuitBreaker = new CircuitBreaker({
+  failureThreshold: 5,
+  recoveryTimeout: 30000,
+  successThreshold: 3
+});
 
-// Alert on errors
-if (result.messages[result.messages.length - 1].content.includes('error')) {
-  await sendAlert('Agent execution error', result);
+const protectedExecution = async (input) => {
+  return await circuitBreaker.execute(async () => {
+    return await agent.run(input, tools, providers, options);
+  });
+};
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### "All providers failed"
+```typescript
+// Check API keys
+console.log('OpenRouter key:', process.env.OPENROUTER_API_KEY?.slice(0, 10));
+
+// Test provider individually
+const testProvider = createVanillaOpenRouterProvider();
+try {
+  const result = await testProvider.chat({
+    messages: [{ role: 'user', content: 'Hello' }]
+  });
+  console.log('Provider working:', result);
+} catch (error) {
+  console.log('Provider error:', error.message);
 }
 ```
 
----
-
-## 🎉 Success Stories
-
-### The 15×8÷3=40 Test
-
-This simple test case proves Ceata's reliability:
-
-**Input**: "Calculate area of 15×8 rectangle, then divide by 3"
-**Expected**: 40
-**Ceata Result**: ✅ Consistent 40 across all models
-
-**Why this matters**: Multi-step mathematical reasoning is a fundamental requirement for practical AI applications. Getting this right unlocks complex workflows.
-
-### Cost Savings
-
-**Real-world impact**:
-- **Before Ceata**: $0.03-0.06 per 1K tokens (GPT-4)
-- **With Ceata**: $0.00 for most operations (free models)
-- **Savings**: 90%+ reduction in AI costs
-
-### Universal Compatibility
-
-**Models that work with VANILLA tool calling**:
-- ✅ Mistral-Small 3.2 24B (free)
-- ✅ DeepSeek-R1 8B (free)
-- ✅ Qwen-2.5 (various sizes)
-- ✅ Gemini 2.0 Flash (free)
-- ✅ Any instruction-following LLM
-
----
-
-**Ready to build your coordinated **ceată** of AI agents? Start with the math agent example and expand from there!**
-
-```bash
-npm run example          # Try the working math agent
-npm run example:quantum  # Experience advanced planning
-npm test                 # Run the test suite
+#### VANILLA Tool Calling Issues
+```typescript
+// Check if model supports instruction following
+const simpleTest = await vanillaProvider.chat({
+  messages: [{
+    role: 'user',
+    content: 'Respond with exactly: TOOL_CALL: {"name": "test", "arguments": {}}'
+  }]
+});
+console.log('VANILLA test:', simpleTest.message.content);
 ```
 
-The framework proves that intelligent architecture can achieve what expensive APIs cannot: **universal compatibility with reliable execution at minimal cost.**
+#### Multi-Step Execution Stops
+```typescript
+// Increase step limit
+const options = {
+  maxSteps: 15, // Increase from default 8
+  enableDebug: true // See where it stops
+};
+
+// Check tool results
+console.log('Last tool result:', result.debug?.steps);
+```
+
+#### Rate Limiting
+```typescript
+// Add delays between requests
+const options = {
+  providerStrategy: 'sequential', // Avoid racing
+  timeoutMs: 180000 // Longer timeout
+};
+```
+
+### Performance Issues
+
+#### Slow Execution
+```typescript
+// Profile execution
+const start = Date.now();
+const result = await agent.run(messages, tools, providers, {
+  enableDebug: true
+});
+console.log(`Total: ${Date.now() - start}ms`);
+console.log(`Provider calls: ${result.metrics.providerCalls}`);
+```
+
+#### High Costs
+```typescript
+// Optimize for free models
+const costOptimizedProviders = {
+  primary: [
+    createVanillaOpenRouterProvider(), // Free first
+  ],
+  fallback: [
+    createGoogleOpenAIProvider()       // Only when needed
+  ]
+};
+```
+
+---
+
+## 📚 Examples & Recipes
+
+### Multi-Step Math Problem
+```typescript
+// From src/examples/mathAgent.ts
+import { ConversationAgent, defineTool, createVanillaOpenRouterProvider } from 'ceata';
+
+const multiply = defineTool({
+  name: 'multiply',
+  description: 'Multiply two numbers',
+  parameters: {
+    type: 'object',
+    properties: {
+      a: { type: 'number' },
+      b: { type: 'number' }
+    },
+    required: ['a', 'b']
+  }
+}, async ({ a, b }) => a * b);
+
+const divide = defineTool({
+  name: 'divide',
+  description: 'Divide two numbers', 
+  parameters: {
+    type: 'object',
+    properties: {
+      a: { type: 'number' },
+      b: { type: 'number' }
+    },
+    required: ['a', 'b']
+  }
+}, async ({ a, b }) => a / b);
+
+const agent = new ConversationAgent();
+const result = await agent.run(
+  [{ role: 'user', content: 'Calculate 15 × 8 ÷ 3' }],
+  { multiply, divide },
+  {
+    primary: [createVanillaOpenRouterProvider()],
+    fallback: []
+  }
+);
+
+console.log('Result:', result.messages[result.messages.length - 1].content);
+```
+
+### Moldova Mixed Language Query
+```typescript
+// From examples/multi-agent/quickDemo.ts
+import { createMoldovaMultiAgentSystem } from 'ceata/multi-agent';
+
+const { coordinator } = createMoldovaMultiAgentSystem();
+
+const result = await coordinator.coordinate(
+  "Salut, vreau să știu vremea în Chișinău și также мне нужен билет în București",
+  {
+    weather_api: weatherTool,
+    travel_search: travelTool
+  },
+  providers
+);
+
+// Result: Coordinates weather and travel agents for mixed Romanian/Russian query
+```
+
+### Custom Agent with Specialized Tools
+```typescript
+import { SpecializedAgent, SpecializationLevel } from 'ceata/multi-agent';
+
+const businessAgent = new SpecializedAgent({
+  id: 'business-analyst',
+  domains: ['business', 'finance', 'strategy'],
+  languages: ['en', 'ro'],
+  tools: ['market_analysis', 'financial_calc', 'competitor_research'],
+  specialization: SpecializationLevel.EXPERT,
+  providerPreference: { type: 'free-first', fallbackEnabled: true },
+  maxConcurrentTasks: 3,
+  averageResponseTime: 5000
+});
+
+const result = await businessAgent.run(
+  [{ role: 'user', content: 'Analyze market opportunity for tech startup in Moldova' }],
+  businessTools,
+  providers
+);
+```
+
+---
+
+## 🧪 Testing
+
+### Run Test Suite
+```bash
+npm test                    # All tests
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests
+npm run test:examples      # Example validation
+```
+
+### Test VANILLA Tool Calling
+```bash
+node dist/examples/mathAgent.js
+# Should execute: 15 × 8 = 120, then 120 ÷ 3 = 40
+```
+
+### Test Multi-Agent System
+```bash
+node dist/examples/multi-agent/quickDemo.js
+# Validates UDP/Orchestra coordination
+```
+
+---
+
+## 📖 Additional Resources
+
+- **[Architecture](./ARCHITECTURE.md)** - Detailed system architecture
+- **[Configuration](./CONFIGURATION.md)** - Complete configuration reference  
+- **[Rationale](./RATIONALE.md)** - Design decisions and trade-offs
+- **[Claude's Perspective](./CLAUDE.md)** - Development insights and lessons
+
+---
+
+*Ceata democratizes agentic AI through free model compatibility - making advanced tool calling accessible to everyone.*
