@@ -142,8 +142,6 @@ const newsProviders = {
     { id: 'openrouter-vanilla-deepseek', model: 'deepseek/deepseek-r1-0528-qwen3-8b:free' }
   ],
   fallback: [
-    // Reliable paid models for critical tasks
-    { id: 'google-openai', model: 'gemini-1.5-flash' },
     { id: 'openai', model: 'gpt-4o-mini' }
   ]
 };
