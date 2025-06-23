@@ -11,30 +11,61 @@ Complete guide to building intelligent AI agents with Ceata's universal framewor
 ### Installation & Setup
 
 ```bash
-git clone https://github.com/nalyk/ceata.git
-cd ceata
+# Clone the repository
+git clone <your-repo-url>
+cd agentic
 npm install
 npm run build
 ```
 
-### Environment Variables
-
-Create a `.env` file:
+### Available NPM Scripts
 
 ```bash
-# Required for free models
-OPENROUTER_API_KEY=your_openrouter_key
-GOOGLE_API_KEY=your_google_ai_key
+# Development
+npm run build              # Compile TypeScript to dist/
+npm run dev               # Watch mode compilation
+npm test                  # Run all tests
+
+# Working Examples  
+npm run example           # Basic math agent (ConversationAgent)
+npm run example:quantum   # Advanced quantum planning agent
+npm run example:chat      # Chat with tools example
+npm run example:memory    # Memory management demo
+npm run example:pipeline  # Pipeline architecture demo
+npm run example:test-correctness  # Correctness verification
+
+# Testing Specific Components
+npm run test:quantum      # Quantum planner tests
+npm run test:vanilla      # VANILLA tool calling tests
+npm run test:integration  # Integration tests
+```
+
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+# Required for free models (VANILLA tool calling)
+OPENROUTER_API_KEY=your_openrouter_key_here
+GOOGLE_API_KEY=your_google_ai_key_here
 
 # Optional premium fallbacks
-OPENAI_API_KEY=your_openai_key
+OPENAI_API_KEY=your_openai_key_here
+
+# Configuration overrides (optional)
+OPENROUTER_DEFAULT_MODEL=mistralai/mistral-small-3.2-24b-instruct:free
+GOOGLE_DEFAULT_MODEL=models/gemini-2.0-flash-thinking-exp
+OPENAI_DEFAULT_MODEL=gpt-4o-mini
+DEFAULT_TIMEOUT_MS=30000
+DEFAULT_MAX_TOKENS=4000
 ```
 
 ### Your First Agent
 
 ```typescript
-import { ConversationAgent, defineTool } from "ceata";
-import { createVanillaOpenRouterProvider } from "ceata/providers/openrouterVanilla";
+import { ConversationAgent, defineTool } from "./src/index.js";
+import { createVanillaOpenRouterProvider } from "./src/providers/openrouterVanilla.js";
+import { googleOpenAI } from "./src/providers/googleOpenAI.js";
 
 // Define a simple tool
 const addTool = defineTool({
@@ -48,30 +79,42 @@ const addTool = defineTool({
     },
     required: ["a", "b"],
   },
-  execute: async ({ a, b }) => {
+  execute: async ({ a, b }: { a: number; b: number }) => {
     const result = a + b;
     console.log(`🧮 Adding ${a} + ${b} = ${result}`);
     return result;
   },
 });
 
-// Create agent with free model support
-const agent = new ConversationAgent();
-const provider = createVanillaOpenRouterProvider(undefined, undefined, {
+// Create VANILLA provider for free models
+const vanillaProvider = createVanillaOpenRouterProvider(undefined, undefined, {
   headers: {
     "HTTP-Referer": "https://example.com",
     "X-Title": "My Ceata Agent",
   },
 });
 
-const tools = { add: addTool };
-const providers = { primary: [provider], fallback: [] };
+// Set up providers with free-first strategy
+const providerGroup = {
+  primary: [vanillaProvider, googleOpenAI],
+  fallback: [] // Add paid providers here if needed
+};
 
-// Execute
+const providerModels = {
+  [vanillaProvider.id]: "mistralai/mistral-small-3.2-24b-instruct:free",
+  [googleOpenAI.id]: "models/gemini-2.0-flash-thinking-exp"
+};
+
+const tools = { add: addTool };
+
+// Execute with the agent
+const agent = new ConversationAgent();
 const result = await agent.run(
   [{ role: "user", content: "What is 5 plus 7?" }],
   tools,
-  providers
+  providerGroup,
+  { maxSteps: 5, providerStrategy: 'smart' },
+  providerModels
 );
 
 console.log(result.messages[result.messages.length - 1].content);
@@ -84,14 +127,16 @@ console.log(result.messages[result.messages.length - 1].content);
 
 This is the proven example from `src/examples/mathAgent.ts` that demonstrates VANILLA tool calling with free models:
 
-### Complete Math Agent
+### Complete Math Agent Implementation
 
 ```typescript
-import { defineTool } from "ceata/core/Tool";
-import { ConversationAgent } from "ceata/core/ConversationAgent";
-import { createVanillaOpenRouterProvider } from "ceata/providers/openrouterVanilla";
-import { googleOpenAI } from "ceata/providers/googleOpenAI";
-import { openai } from "ceata/providers/openai";
+import { defineTool } from "../core/Tool.js";
+import { ConversationAgent } from "../core/ConversationAgent.js";
+import { logger } from "../core/logger.js";
+import { createVanillaOpenRouterProvider } from "../providers/openrouterVanilla.js";
+import { googleOpenAI } from "../providers/googleOpenAI.js";
+import { openai } from "../providers/openai.js";
+import { config } from "../config/index.js";
 
 // Create multiple VANILLA providers for redundancy
 const vanillaOpenRouter1 = createVanillaOpenRouterProvider(undefined, undefined, {
@@ -103,7 +148,7 @@ const vanillaOpenRouter1 = createVanillaOpenRouterProvider(undefined, undefined,
 
 const vanillaOpenRouter2 = createVanillaOpenRouterProvider(undefined, undefined, {
   headers: {
-    "HTTP-Referer": "https://example.com", 
+    "HTTP-Referer": "https://example.com",
     "X-Title": "Ceata Math Agent",
   },
 });
@@ -166,25 +211,36 @@ const divideTool = defineTool({
   },
 });
 
-// Configure free-first provider strategy
-const providers = {
-  primary: [
-    // FREE models with VANILLA tool calling
-    vanillaOpenRouter1, // Mistral-Small-3.2:free
-    vanillaOpenRouter2, // DeepSeek-R1:free
-    googleOpenAI,       // Gemini-2.0-Flash:free
-  ],
-  fallback: [
-    // PAID fallback (only if free models exhausted)
-    openai,             // GPT-4o-mini
-  ]
-};
+// Configure providers with intelligent fallback logic
+const providers = [
+  // Primary providers (FREE - VANILLA tool calling)
+  { p: vanillaOpenRouter1, model: "mistralai/mistral-small-3.2-24b-instruct:free", priority: "primary" },
+  { p: vanillaOpenRouter2, model: "deepseek/deepseek-r1-0528-qwen3-8b:free", priority: "primary" },
+  { p: googleOpenAI, model: config.providers.google.defaultModel, priority: "primary" },
+  
+  // Fallback provider (PAID - only if free options exhausted)
+  { p: openai, model: config.providers.openai.defaultModel, priority: "fallback" },
+];
 
 const tools = {
   add: addTool,
   multiply: multiplyTool,
   divide: divideTool,
 };
+
+// Enable debug output
+logger.setLevel('debug');
+
+// Convert provider configuration to agent format
+const providerGroup = {
+  primary: providers.filter(p => p.priority === 'primary').map(p => p.p),
+  fallback: providers.filter(p => p.priority === 'fallback').map(p => p.p)
+};
+
+const providerModels: Record<string, string> = {};
+providers.forEach(pc => {
+  providerModels[pc.p.id] = pc.model;
+});
 
 // Execute the critical test case
 const agent = new ConversationAgent();
@@ -203,9 +259,17 @@ const messages = [
 const result = await agent.run(
   messages,
   tools,
-  providers,
-  { maxSteps: 10, providerStrategy: 'smart' }
+  providerGroup,
+  { maxSteps: 10, providerStrategy: 'smart' },
+  providerModels
 );
+```
+
+### Running the Math Agent
+
+```bash
+# Try the working math agent example
+npm run example
 ```
 
 ### Expected Output
@@ -245,6 +309,27 @@ Step 2: openrouter-vanilla (mistralai/mistral-small-3.2-24b-instruct:free)
 ```
 
 **✅ Result: Perfect sequential execution with correct answer (40)**
+
+### Debugging the Output
+
+```typescript
+// Enable debug mode to see execution details
+logger.setLevel('debug');
+
+// Examine the result
+if (result.debug) {
+  console.log("📊 Execution Analysis:");
+  console.log(`Steps: ${result.debug.steps}`);
+  console.log(`Reflections: ${result.debug.reflections}`);
+  console.log(`Provider History:`, result.debug.providerHistory);
+}
+
+// Performance metrics
+console.log("⚡ Performance Metrics:");
+console.log(`Duration: ${result.metrics.duration}ms`);
+console.log(`Tool Executions: ${result.metrics.toolExecutions}`);
+console.log(`Cost Savings: $${result.metrics.costSavings}`);
+```
 
 ---
 
