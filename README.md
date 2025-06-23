@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<h1>Ceata – Universal AI Agent Framework<h1>
+<h1>Ceata – Universal AI Agent Framework</h1>
 </p>
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-blue.svg)](https://www.typescriptlang.org/)
