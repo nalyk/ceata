@@ -503,4 +503,4 @@ npm run example  # See VANILLA tool calling in action!
 
 ---
 
-_Built with ❤️ and breakthrough engineering – democratizing AI through universal tool calling and intelligent coordination._
+_Built with ❤️ and forged with Yoda.Digital engineering – democratizing AI through universal tool calling and intelligent coordination._
